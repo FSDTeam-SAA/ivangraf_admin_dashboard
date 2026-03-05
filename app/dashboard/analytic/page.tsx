@@ -1,54 +1,125 @@
 "use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PaginationBar } from "@/components/dashboard/pagination-bar";
 import { usePagination } from "@/components/dashboard/use-pagination";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
-  paymentBreakdown,
-  timePeriodBreakdown,
-  revenueAnalysis,
-  topSoldItems,
-} from "@/data/dashboard";
+  getRevenueAnalysis,
+  getTimePeriods,
+  getTopSoldItems,
+  getTypeOfPayment,
+  type PeriodParams,
+} from "@/lib/api";
+import { getErrorMessage } from "@/lib/error";
+import { formatCurrency } from "@/lib/format";
 
-const timeOptions = ["This month", "Last month", "Custom"];
+const periodOptions: { label: string; value: NonNullable<PeriodParams["period"]> }[] = [
+  { label: "This month", value: "thisMonth" },
+  { label: "This year", value: "thisYear" },
+  { label: "Last year", value: "lastYear" },
+];
+
+function buildConicStops(items: { value: number; color: string }[]) {
+  const total = items.reduce((sum, item) => sum + item.value, 0);
+
+  return items.reduce<{ start: number; end: number; color: string }[]>((acc, item) => {
+    const start = acc.length ? acc[acc.length - 1].end : 0;
+    const end = start + (total ? (item.value / total) * 100 : 0);
+    acc.push({ start, end, color: item.color });
+    return acc;
+  }, []);
+}
+
+function AnalyticCardSkeleton() {
+  return (
+    <Card>
+      <CardHeader className="space-y-3">
+        <Skeleton className="h-5 w-48" />
+        <Skeleton className="h-4 w-36" />
+      </CardHeader>
+      <CardContent className="flex flex-col items-center gap-6">
+        <Skeleton className="h-44 w-44 rounded-full" />
+        <div className="w-full space-y-2">
+          <Skeleton className="h-4 w-36" />
+          <Skeleton className="h-4 w-28" />
+          <Skeleton className="h-4 w-24" />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
 
 export default function AnalyticPage() {
-  const [timeFilter, setTimeFilter] = React.useState(timeOptions[0]);
+  const [period, setPeriod] = React.useState<NonNullable<PeriodParams["period"]>>("thisMonth");
+
+  const paymentQuery = useQuery({
+    queryKey: ["dashboard", "type-of-payment", period],
+    queryFn: () => getTypeOfPayment({ period }),
+  });
+
+  const timePeriodsQuery = useQuery({
+    queryKey: ["dashboard", "time-periods"],
+    queryFn: () => getTimePeriods(),
+  });
+
+  const revenueAnalysisQuery = useQuery({
+    queryKey: ["dashboard", "revenue-analysis"],
+    queryFn: () => getRevenueAnalysis(),
+  });
+
+  const topSoldQuery = useQuery({
+    queryKey: ["dashboard", "top-sold-items", period],
+    queryFn: () => getTopSoldItems({ period, limit: 50 }),
+  });
+
+  React.useEffect(() => {
+    const firstError =
+      paymentQuery.error || timePeriodsQuery.error || revenueAnalysisQuery.error || topSoldQuery.error;
+
+    if (firstError) {
+      toast.error(getErrorMessage(firstError, "Failed to load analytics"));
+    }
+  }, [paymentQuery.error, revenueAnalysisQuery.error, timePeriodsQuery.error, topSoldQuery.error]);
+
+  const paymentItems = paymentQuery.data?.data || [];
+  const timeItems = timePeriodsQuery.data?.data || [];
+  const revenueRows = revenueAnalysisQuery.data?.data || [];
+  const topSoldRows = topSoldQuery.data?.data || [];
+
+  const paymentStops = buildConicStops(
+    paymentItems.map((item, index) => ({
+      value: item.totalAmount,
+      color: ["#c18b1f", "#d9a441", "#f1c66b", "#ab7a1a", "#e8b85c"][index % 5],
+    }))
+  );
+
+  const timeStops = buildConicStops(
+    timeItems.map((item, index) => ({
+      value: item.total,
+      color: ["#e28a00", "#f3c774", "#cfa344"][index % 3],
+    }))
+  );
+
+  const maxRevenue = Math.max(
+    1,
+    ...revenueRows.flatMap((item) => [item.thisYearTotal || 0, item.lastYearTotal || 0])
+  );
+
   const {
     page: topPage,
     setPage: setTopPage,
     totalPages: topTotalPages,
     totalItems: topTotalItems,
-    items: topItems,
-  } = usePagination(topSoldItems, 6);
-
-  const paymentTotal = paymentBreakdown.reduce((sum, item) => sum + item.value, 0);
-  const paymentStops = paymentBreakdown.reduce<{ start: number; end: number; color: string }[]>(
-    (acc, item) => {
-      const start = acc.length ? acc[acc.length - 1].end : 0;
-      const end = start + (item.value / paymentTotal) * 100;
-      acc.push({ start, end, color: item.color });
-      return acc;
-    },
-    []
-  );
-
-  const timeStops = timePeriodBreakdown.reduce<{ start: number; end: number; color: string }[]>(
-    (acc, item) => {
-      const start = acc.length ? acc[acc.length - 1].end : 0;
-      const end = start + item.value;
-      acc.push({ start, end, color: item.color });
-      return acc;
-    },
-    []
-  );
-
-  const maxRevenue = Math.max(...revenueAnalysis.map((item) => item.thisYear));
+    items: pagedTopRows,
+  } = usePagination(topSoldRows, 6);
 
   return (
     <div className="space-y-6">
@@ -56,166 +127,179 @@ export default function AnalyticPage() {
         title="Analytic"
         description="Explore organized analytics data. View data in clear lists. Get useful insights"
       />
-      <div className="grid gap-6 lg:grid-cols-2">
-        <Card>
-          <CardHeader className="flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Type of Payment</CardTitle>
-              <p className="text-sm text-[#7b6a48]">See the Type of Payment.</p>
-            </div>
-            <Select value={timeFilter} onChange={(event) => setTimeFilter(event.target.value)}>
-              {timeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-6">
-            <div
-              className="relative h-44 w-44 rounded-full"
-              style={{
-                background: `conic-gradient(${paymentStops
-                  .map((stop) => `${stop.color} ${stop.start}% ${stop.end}%`)
-                  .join(", ")})`,
-              }}
-            >
-              <div className="absolute inset-10 rounded-full bg-white" />
-              <div className="absolute inset-0 flex items-center justify-center text-center text-xs font-semibold text-white">
-                <span>Cash</span>
-              </div>
-            </div>
-            <div className="space-y-2">
-              {paymentBreakdown.map((item) => (
-                <div key={item.label} className="flex items-center gap-2 text-sm text-[#4c4231]">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ background: item.color }}
-                  />
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Time Periods</CardTitle>
-              <p className="text-sm text-[#7b6a48]">See Time Periods.</p>
-            </div>
-            <Select value={timeFilter} onChange={(event) => setTimeFilter(event.target.value)}>
-              {timeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
-          </CardHeader>
-          <CardContent className="flex flex-col items-center gap-6">
-            <div
-              className="relative h-44 w-44 rounded-full"
-              style={{
-                background: `conic-gradient(${timeStops
-                  .map((stop) => `${stop.color} ${stop.start}% ${stop.end}%`)
-                  .join(", ")})`,
-              }}
-            >
-              <div className="absolute inset-10 rounded-full bg-white" />
-            </div>
-            <div className="space-y-2">
-              {timePeriodBreakdown.map((item) => (
-                <div key={item.label} className="flex items-center gap-2 text-sm text-[#4c4231]">
-                  <span
-                    className="h-2.5 w-2.5 rounded-full"
-                    style={{ background: item.color }}
-                  />
-                  <span>{item.label}</span>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+
+      <div className="flex justify-end">
+        <Select value={period} onChange={(event) => setPeriod(event.target.value as NonNullable<PeriodParams["period"]>)}>
+          {periodOptions.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </Select>
       </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        {paymentQuery.isLoading ? (
+          <AnalyticCardSkeleton />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Type of Payment</CardTitle>
+              <p className="text-sm text-[#7b6a48]">See the type of payment.</p>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-6">
+              <div
+                className="relative h-44 w-44 rounded-full"
+                style={{
+                  background: `conic-gradient(${paymentStops
+                    .map((stop) => `${stop.color} ${stop.start}% ${stop.end}%`)
+                    .join(", ")})`,
+                }}
+              >
+                <div className="absolute inset-10 rounded-full bg-white" />
+              </div>
+              <div className="w-full space-y-2">
+                {paymentItems.map((item, index) => (
+                  <div key={`${item.paymentType}-${index}`} className="flex items-center justify-between gap-3 text-sm text-[#4c4231]">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ background: ["#c18b1f", "#d9a441", "#f1c66b", "#ab7a1a", "#e8b85c"][index % 5] }}
+                      />
+                      {item.paymentType}
+                    </span>
+                    <span>{item.percent}%</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+        {timePeriodsQuery.isLoading ? (
+          <AnalyticCardSkeleton />
+        ) : (
+          <Card>
+            <CardHeader>
+              <CardTitle>Time Periods</CardTitle>
+              <p className="text-sm text-[#7b6a48]">See time period split.</p>
+            </CardHeader>
+            <CardContent className="flex flex-col items-center gap-6">
+              <div
+                className="relative h-44 w-44 rounded-full"
+                style={{
+                  background: `conic-gradient(${timeStops
+                    .map((stop) => `${stop.color} ${stop.start}% ${stop.end}%`)
+                    .join(", ")})`,
+                }}
+              >
+                <div className="absolute inset-10 rounded-full bg-white" />
+              </div>
+              <div className="w-full space-y-2">
+                {timeItems.map((item, index) => (
+                  <div key={`${item.label}-${index}`} className="flex items-center justify-between gap-3 text-sm text-[#4c4231]">
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="h-2.5 w-2.5 rounded-full"
+                        style={{ background: ["#e28a00", "#f3c774", "#cfa344"][index % 3] }}
+                      />
+                      {item.label}
+                    </span>
+                    <span>{item.percent}%</span>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <Card>
-          <CardHeader className="flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-            <div>
-              <CardTitle>Revenue Analysis</CardTitle>
-              <p className="text-sm text-[#7b6a48]">See the Revenue</p>
-            </div>
-            <Select value={timeFilter} onChange={(event) => setTimeFilter(event.target.value)}>
-              {timeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
+          <CardHeader>
+            <CardTitle>Revenue Analysis</CardTitle>
+            <p className="text-sm text-[#7b6a48]">Monthly comparison of this year vs last year.</p>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-12 items-end gap-2">
-              {revenueAnalysis.map((item) => (
-                <div key={item.month} className="flex flex-col items-center gap-2">
-                  <div
-                    className="w-6 rounded-md bg-gradient-to-b from-[#f4d58a] via-[#d6a54a] to-[#b57a1a]"
-                    style={{ height: `${(item.thisYear / maxRevenue) * 180}px` }}
-                  />
-                  <div className="text-[10px] text-[#7b6a48]">
-                    {item.month.slice(0, 3)}
-                  </div>
+            {revenueAnalysisQuery.isLoading ? (
+              <Skeleton className="h-[240px] w-full" />
+            ) : (
+              <>
+                <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
+                  {revenueRows.map((item) => (
+                    <div key={item.monthNumber} className="flex flex-col items-center gap-2">
+                      <div className="flex items-end gap-1">
+                        <div
+                          className="w-2 rounded-sm bg-[#f4d58a]"
+                          style={{ height: `${((item.lastYearTotal || 0) / maxRevenue) * 140}px` }}
+                        />
+                        <div
+                          className="w-2 rounded-sm bg-[#c18b1f]"
+                          style={{ height: `${((item.thisYearTotal || 0) / maxRevenue) * 140}px` }}
+                        />
+                      </div>
+                      <div className="text-[10px] text-[#7b6a48]">{item.monthName.slice(0, 3)}</div>
+                    </div>
+                  ))}
                 </div>
-              ))}
-            </div>
-            <div className="mt-4 flex items-center gap-6 text-xs text-[#7b6a48]">
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#f4d58a]" />
-                February 2025
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-[#d6a54a]" />
-                February 2026
-              </div>
-            </div>
+                <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-[#7b6a48]">
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#f4d58a]" />
+                    Last year
+                  </span>
+                  <span className="flex items-center gap-2">
+                    <span className="h-2 w-2 rounded-full bg-[#c18b1f]" />
+                    This year
+                  </span>
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
+
         <Card className="flex flex-col">
           <CardHeader>
-            <CardTitle>Top 10 most sold items</CardTitle>
-            <p className="text-sm text-[#7b6a48]">See Top 10 most sold items</p>
+            <CardTitle>Top sold items</CardTitle>
+            <p className="text-sm text-[#7b6a48]">Most sold items for selected period.</p>
           </CardHeader>
-          <CardContent className="flex-1 max-h-[340px] overflow-y-auto pr-2">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Month</TableHead>
-                  <TableHead>Last Years</TableHead>
-                  <TableHead>This Years</TableHead>
-                  <TableHead>Difference</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {topItems.map((item) => (
-                  <TableRow key={item.month}>
-                    <TableCell>{item.month}</TableCell>
-                    <TableCell>{item.lastYear}</TableCell>
-                    <TableCell>{item.thisYear}</TableCell>
-                    <TableCell className={item.difference > 0 ? "text-[#22c55e]" : "text-[#ef4444]"}>
-                      {item.difference > 0 ? "+" : ""}
-                      {item.difference}%
-                    </TableCell>
-                  </TableRow>
+          <CardContent className="flex-1 overflow-y-auto pr-2">
+            {topSoldQuery.isLoading ? (
+              <div className="space-y-3">
+                {Array.from({ length: 6 }).map((_, index) => (
+                  <Skeleton key={index} className="h-10 w-full" />
                 ))}
-              </TableBody>
-            </Table>
-            <div className="mt-4">
-              <PaginationBar
-                page={topPage}
-                totalPages={topTotalPages}
-                totalItems={topTotalItems}
-                itemsPerPage={6}
-                onPageChange={setTopPage}
-              />
-            </div>
+              </div>
+            ) : (
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Item</TableHead>
+                      <TableHead>Qty</TableHead>
+                      <TableHead className="text-right">Amount</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {pagedTopRows.map((item) => (
+                      <TableRow key={`${item.articleId}-${item.rank}`}>
+                        <TableCell>{item.itemName}</TableCell>
+                        <TableCell>{item.totalQty}</TableCell>
+                        <TableCell className="text-right">{formatCurrency(item.totalAmount)}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                <div className="mt-4">
+                  <PaginationBar
+                    page={topPage}
+                    totalPages={topTotalPages}
+                    totalItems={topTotalItems}
+                    itemsPerPage={6}
+                    onPageChange={setTopPage}
+                  />
+                </div>
+              </>
+            )}
           </CardContent>
         </Card>
       </div>

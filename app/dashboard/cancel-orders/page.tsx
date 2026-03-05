@@ -1,61 +1,94 @@
 "use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
+import { toast } from "sonner";
 
 import { PageHeader } from "@/components/dashboard/page-header";
 import { TableFooter } from "@/components/dashboard/table-footer";
-import { usePagination } from "@/components/dashboard/use-pagination";
+import { TableSkeleton } from "@/components/dashboard/table-skeleton";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { cancelOrders } from "@/data/dashboard";
+import { getCancelOrders } from "@/lib/api";
+import { getErrorMessage } from "@/lib/error";
+import { formatCurrency, formatDate } from "@/lib/format";
+
+const ITEMS_PER_PAGE = 12;
 
 export default function CancelOrdersPage() {
+  const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState("");
+  const deferredSearch = React.useDeferredValue(search);
 
-  const filtered = React.useMemo(() => {
-    if (!search) return cancelOrders;
-    const term = search.toLowerCase();
-    return cancelOrders.filter((item) => item.order.toLowerCase().includes(term));
-  }, [search]);
+  React.useEffect(() => {
+    setPage(1);
+  }, [deferredSearch]);
 
-  const { page, setPage, totalPages, totalItems, items } = usePagination(filtered, 12);
+  const cancelOrdersQuery = useQuery({
+    queryKey: ["lists", "cancel-orders", page, deferredSearch],
+    queryFn: () =>
+      getCancelOrders({
+        page,
+        limit: ITEMS_PER_PAGE,
+        search: deferredSearch || undefined,
+      }),
+    placeholderData: (previousData) => previousData,
+  });
+
+  React.useEffect(() => {
+    if (!cancelOrdersQuery.error) return;
+    toast.error(getErrorMessage(cancelOrdersQuery.error, "Failed to load cancel orders"));
+  }, [cancelOrdersQuery.error]);
+
+  const rows = cancelOrdersQuery.data?.data || [];
+  const totalItems = cancelOrdersQuery.data?.meta?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+
+  React.useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Cancel Orders"
-        description="Review cancellations and customer feedback."
-      />
+      <PageHeader title="Cancel Orders" description="Review cancelled orders and cancellation values." />
+
       <Card className="p-4">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Order</TableHead>
-              <TableHead>Item</TableHead>
-              <TableHead>Total</TableHead>
-              <TableHead>Reason</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.order}</TableCell>
-                <TableCell>{item.item}</TableCell>
-                <TableCell>${item.total.toFixed(2)}</TableCell>
-                <TableCell>{item.reason}</TableCell>
+        {cancelOrdersQuery.isLoading ? (
+          <TableSkeleton headers={["Order", "Time", "Waiter", "Amount"]} rows={ITEMS_PER_PAGE} />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Order</TableHead>
+                <TableHead>Time</TableHead>
+                <TableHead>Waiter</TableHead>
+                <TableHead>Amount</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {rows.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.orderNumber}</TableCell>
+                  <TableCell>{formatDate(item.time)}</TableCell>
+                  <TableCell>{item.waiter || "-"}</TableCell>
+                  <TableCell>{formatCurrency(item.amount)}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
         <TableFooter
           search={search}
           onSearchChange={setSearch}
-          totalLabel="Total off all"
-          totalValue="20 Orders"
+          totalLabel="Total of all"
+          totalValue={`${totalItems} Orders`}
           page={page}
           totalPages={totalPages}
           totalItems={totalItems}
-          itemsPerPage={12}
+          itemsPerPage={ITEMS_PER_PAGE}
           onPageChange={setPage}
         />
       </Card>

@@ -19,7 +19,18 @@ import {
   Heart,
   LogOut,
 } from "lucide-react";
+import { signOut } from "next-auth/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "sonner";
 
+import {
+  type ApiEnvelope,
+  type UserPreferences,
+  getUserPreferences,
+  updateUserPreferences,
+} from "@/lib/api";
+import { clearActiveConnectionId } from "@/lib/connection-storage";
+import { getErrorMessage } from "@/lib/error";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -37,39 +48,62 @@ const navItems = [
   { name: "Cancel Orders", href: "/dashboard/cancel-orders", icon: Ban },
 ].map((item, index) => ({ ...item, order: index }));
 
-const FAVORITES_KEY = "ivangraf_admin_favorites";
+const PREFERENCES_QUERY_KEY = ["user", "preferences"] as const;
+const EMPTY_FAVORITES: string[] = [];
 
 interface SidebarProps {
   className?: string;
   onNavigate?: () => void;
 }
 
+function buildUpdatedFavorites(current: string[], href: string) {
+  if (current.includes(href)) {
+    return current.filter((item) => item !== href);
+  }
+  return [...current, href];
+}
+
 export function Sidebar({ className, onNavigate }: SidebarProps) {
   const pathname = usePathname();
-  const [favorites, setFavorites] = React.useState<string[]>([]);
+  const queryClient = useQueryClient();
 
-  React.useEffect(() => {
-    try {
-      const stored = window.localStorage.getItem(FAVORITES_KEY);
-      if (stored) {
-        const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed)) {
-          setFavorites(parsed);
-        }
+  const preferencesQuery = useQuery({
+    queryKey: PREFERENCES_QUERY_KEY,
+    queryFn: getUserPreferences,
+  });
+
+  const updatePreferencesMutation = useMutation({
+    mutationFn: (favoriteSidebarItems: string[]) =>
+      updateUserPreferences({ favoriteSidebarItems }),
+    onMutate: async (nextFavorites) => {
+      await queryClient.cancelQueries({ queryKey: PREFERENCES_QUERY_KEY });
+      const previous = queryClient.getQueryData<ApiEnvelope<UserPreferences>>(PREFERENCES_QUERY_KEY);
+
+      queryClient.setQueryData<ApiEnvelope<UserPreferences>>(PREFERENCES_QUERY_KEY, {
+        success: true,
+        message: "OK",
+        data: { favoriteSidebarItems: nextFavorites },
+      });
+
+      return { previous };
+    },
+    onError: (error, _variables, context) => {
+      if (context?.previous) {
+        queryClient.setQueryData(PREFERENCES_QUERY_KEY, context.previous);
       }
-    } catch {
-      // ignore storage errors
-    }
-  }, []);
+      toast.error(getErrorMessage(error, "Failed to save favorites"));
+    },
+    onSuccess: (response) => {
+      queryClient.setQueryData(PREFERENCES_QUERY_KEY, response);
+    },
+  });
 
   React.useEffect(() => {
-    try {
-      window.localStorage.setItem(FAVORITES_KEY, JSON.stringify(favorites));
-    } catch {
-      // ignore storage errors
-    }
-  }, [favorites]);
+    if (!preferencesQuery.error) return;
+    toast.error(getErrorMessage(preferencesQuery.error, "Failed to load favorites"));
+  }, [preferencesQuery.error]);
 
+  const favorites = preferencesQuery.data?.data.favoriteSidebarItems ?? EMPTY_FAVORITES;
   const favoriteSet = React.useMemo(() => new Set(favorites), [favorites]);
 
   const sortedItems = React.useMemo(() => {
@@ -82,10 +116,15 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   }, [favoriteSet]);
 
   const toggleFavorite = (href: string) => {
-    setFavorites((prev) =>
-      prev.includes(href) ? prev.filter((item) => item !== href) : [...prev, href]
-    );
+    const nextFavorites = buildUpdatedFavorites(favorites, href);
+    updatePreferencesMutation.mutate(nextFavorites);
   };
+
+  async function handleLogout() {
+    clearActiveConnectionId();
+    queryClient.removeQueries({ queryKey: PREFERENCES_QUERY_KEY });
+    await signOut({ callbackUrl: "/auth/login" });
+  }
 
   return (
     <aside
@@ -107,9 +146,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
               onClick={() => onNavigate?.()}
               className={cn(
                 "flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-[#2f2a21] transition",
-                isActive
-                  ? "bg-[#c99636] text-white shadow"
-                  : "hover:bg-[#f0d28c]"
+                isActive ? "bg-[#c99636] text-white shadow" : "hover:bg-[#f0d28c]"
               )}
             >
               <span className="flex items-center gap-3">
@@ -126,6 +163,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
                   toggleFavorite(item.href);
                 }}
                 className="rounded-full p-1 transition hover:bg-white/30"
+                disabled={updatePreferencesMutation.isPending && !isFavorite}
               >
                 <Heart
                   className={cn(
@@ -142,14 +180,14 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
           );
         })}
       </nav>
-      <Link
-        href="/auth/login"
-        onClick={() => onNavigate?.()}
-        className="flex items-center gap-3 px-3 py-2 text-sm font-semibold text-[#c93333]"
+      <button
+        type="button"
+        onClick={handleLogout}
+        className="flex items-center gap-3 px-3 py-2 text-left text-sm font-semibold text-[#c93333]"
       >
         <LogOut className="h-4 w-4" />
         Logout
-      </Link>
+      </button>
     </aside>
   );
 }

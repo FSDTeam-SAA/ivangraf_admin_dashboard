@@ -1,91 +1,109 @@
 "use client";
 
 import * as React from "react";
+import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
+import { toast } from "sonner";
 
 import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { TableFooter } from "@/components/dashboard/table-footer";
-import { usePagination } from "@/components/dashboard/use-pagination";
+import { TableSkeleton } from "@/components/dashboard/table-skeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { spendGoods } from "@/data/dashboard";
+import { getSpendGoods } from "@/lib/api";
+import { getErrorMessage } from "@/lib/error";
 
-const timeOptions = ["This month", "Last month", "Custom"];
+const ITEMS_PER_PAGE = 12;
 
 export default function ListOfSpendGoodsPage() {
-  const [timeFilter, setTimeFilter] = React.useState(timeOptions[0]);
+  const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState("");
+  const deferredSearch = React.useDeferredValue(search);
   const [exportOpen, setExportOpen] = React.useState(false);
 
-  const filtered = React.useMemo(() => {
-    if (!search) return spendGoods;
-    const term = search.toLowerCase();
-    return spendGoods.filter((item) => item.name.toLowerCase().includes(term));
-  }, [search]);
+  React.useEffect(() => {
+    setPage(1);
+  }, [deferredSearch]);
 
-  const { page, setPage, totalPages, totalItems, items } = usePagination(filtered, 12);
+  const spendGoodsQuery = useQuery({
+    queryKey: ["lists", "spend-goods", page, deferredSearch],
+    queryFn: () =>
+      getSpendGoods({
+        page,
+        limit: ITEMS_PER_PAGE,
+        search: deferredSearch || undefined,
+      }),
+    placeholderData: (previousData) => previousData,
+  });
+
+  React.useEffect(() => {
+    if (!spendGoodsQuery.error) return;
+    toast.error(getErrorMessage(spendGoodsQuery.error, "Failed to load spend goods"));
+  }, [spendGoodsQuery.error]);
+
+  const rows = spendGoodsQuery.data?.data || [];
+  const totalItems = spendGoodsQuery.data?.meta?.total || 0;
+  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+
+  React.useEffect(() => {
+    if (page > totalPages) {
+      setPage(totalPages);
+    }
+  }, [page, totalPages]);
 
   return (
     <div className="space-y-6">
       <PageHeader
-        title="List of spend Goods"
-        description="See items and articles Check details in clear lists Stay organized."
+        title="List of spend goods"
+        description="See spend goods in clear lists and keep procurement data organized."
         actions={
-          <>
-            <Button variant="soft" onClick={() => setExportOpen(true)}>
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-            <Select value={timeFilter} onChange={(event) => setTimeFilter(event.target.value)}>
-              {timeOptions.map((option) => (
-                <option key={option} value={option}>
-                  {option}
-                </option>
-              ))}
-            </Select>
-          </>
+          <Button variant="soft" onClick={() => setExportOpen(true)}>
+            <Download className="h-4 w-4" />
+            Export
+          </Button>
         }
       />
+
       <Card className="p-4">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Name of Items</TableHead>
-              <TableHead>Quantity</TableHead>
-              <TableHead>Type of Unit (Liter, Quantity)</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {items.map((item) => (
-              <TableRow key={item.id}>
-                <TableCell className="font-medium">{item.name}</TableCell>
-                <TableCell>{item.quantity}</TableCell>
-                <TableCell>{item.unit}</TableCell>
+        {spendGoodsQuery.isLoading ? (
+          <TableSkeleton headers={["Name of Items", "Quantity", "Type of Unit"]} rows={ITEMS_PER_PAGE} />
+        ) : (
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Name of Items</TableHead>
+                <TableHead>Quantity</TableHead>
+                <TableHead>Type of Unit (Liter, Quantity)</TableHead>
               </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+            </TableHeader>
+            <TableBody>
+              {rows.map((item) => (
+                <TableRow key={item.id}>
+                  <TableCell className="font-medium">{item.name}</TableCell>
+                  <TableCell>{item.quantity ?? "-"}</TableCell>
+                  <TableCell>{item.unit || "-"}</TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
+        )}
+
         <TableFooter
           search={search}
           onSearchChange={setSearch}
-          totalLabel="Total off all"
-          totalValue="3,105 Items"
+          totalLabel="Total of all"
+          totalValue={`${totalItems} Items`}
           page={page}
           totalPages={totalPages}
           totalItems={totalItems}
-          itemsPerPage={12}
+          itemsPerPage={ITEMS_PER_PAGE}
           onPageChange={setPage}
         />
       </Card>
-      <ExportDialog
-        open={exportOpen}
-        onOpenChange={setExportOpen}
-        title="Export"
-        subtitle="List of spend Goods"
-      />
+
+      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} title="Export" subtitle="List of spend Goods" />
     </div>
   );
 }
