@@ -5,35 +5,35 @@ import { useQuery } from "@tanstack/react-query";
 import { ArrowDownRight, ArrowUpRight, Download } from "lucide-react";
 import { toast } from "sonner";
 
+import { DateFilter } from "@/components/dashboard/date-filter";
 import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
 import { usePagination } from "@/components/dashboard/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getSalesItems, type PeriodParams } from "@/lib/api";
+import { getSalesItems, type SalesItem } from "@/lib/api";
+import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
 import { formatCurrency } from "@/lib/format";
 
 const ITEMS_PER_PAGE = 12;
-const periodOptions: { label: string; value: NonNullable<PeriodParams["period"]> }[] = [
-  { label: "This month", value: "thisMonth" },
-  { label: "This year", value: "thisYear" },
-  { label: "Last year", value: "lastYear" },
-];
 
 export default function SalesOfItemsPage() {
-  const [period, setPeriod] = React.useState<NonNullable<PeriodParams["period"]>>("thisMonth");
   const [search, setSearch] = React.useState("");
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("last7Days"));
   const [exportOpen, setExportOpen] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState<SalesItem | null>(null);
+
+  const queryParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
 
   const salesQuery = useQuery({
-    queryKey: ["dashboard", "sales-items", period],
-    queryFn: () => getSalesItems({ period }),
+    queryKey: ["dashboard", "sales-items", queryParams],
+    queryFn: () => getSalesItems(queryParams),
   });
 
   React.useEffect(() => {
@@ -49,11 +49,16 @@ export default function SalesOfItemsPage() {
     return rows.filter((item) => item.itemName.toLowerCase().includes(term));
   }, [salesQuery.data?.data, search]);
 
+  const totalAmount = React.useMemo(
+    () => filteredRows.reduce((sum, item) => sum + item.total, 0),
+    [filteredRows]
+  );
+
   const { page, setPage, totalPages, totalItems, items } = usePagination(filteredRows, ITEMS_PER_PAGE);
 
   React.useEffect(() => {
     setPage(1);
-  }, [search, period, setPage]);
+  }, [search, dateFilter, setPage]);
 
   return (
     <div className="space-y-6">
@@ -62,17 +67,11 @@ export default function SalesOfItemsPage() {
         description="See sold item quantities and value share across the selected period."
         actions={
           <>
+            <DateFilter value={dateFilter} onChange={setDateFilter} />
             <Button variant="soft" onClick={() => setExportOpen(true)}>
               <Download className="h-4 w-4" />
               Export
             </Button>
-            <Select value={period} onChange={(event) => setPeriod(event.target.value as NonNullable<PeriodParams["period"]>)}>
-              {periodOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
           </>
         }
       />
@@ -95,7 +94,7 @@ export default function SalesOfItemsPage() {
                 const trend = item.percentOfAllItems >= 50;
 
                 return (
-                  <TableRow key={`${item.articleId}-${item.itemName}`}>
+                  <TableRow key={`${item.articleId}-${item.itemName}`} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
                     <TableCell className="font-medium">{item.itemName}</TableCell>
                     <TableCell>{item.quantity}</TableCell>
                     <TableCell>
@@ -125,8 +124,8 @@ export default function SalesOfItemsPage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
-          totalLabel="Total of all"
-          totalValue={`${totalItems} Items`}
+          totalLabel="Total amount"
+          totalValue={formatCurrency(totalAmount)}
           page={page}
           totalPages={totalPages}
           totalItems={totalItems}
@@ -135,7 +134,37 @@ export default function SalesOfItemsPage() {
         />
       </Card>
 
-      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} title="Export" subtitle="Sales of items" />
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        title="Export"
+        subtitle="Sales of items"
+        reportPath="/api/analytics/sales-items/export"
+        params={{
+          search: search || undefined,
+          ...queryParams,
+        }}
+      />
+
+      <RowDetailsDialog
+        open={Boolean(selectedItem)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedItem(null);
+        }}
+        title={selectedItem?.itemName || "Sales details"}
+        description="Selected sales item details"
+        details={
+          selectedItem
+            ? [
+                { label: "Article ID", value: selectedItem.articleId || "-" },
+                { label: "Item", value: selectedItem.itemName },
+                { label: "Quantity", value: selectedItem.quantity },
+                { label: "Total", value: formatCurrency(selectedItem.total) },
+                { label: "Percent of all items", value: `${selectedItem.percentOfAllItems}%` },
+              ]
+            : []
+        }
+      />
     </div>
   );
 }

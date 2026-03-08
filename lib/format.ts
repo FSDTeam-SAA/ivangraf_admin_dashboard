@@ -1,8 +1,14 @@
 export function formatCurrency(value: number) {
   return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
+    minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  }).format(value || 0);
+}
+
+export function formatNumber(value: number, maximumFractionDigits = 2) {
+  return new Intl.NumberFormat("en-US", {
+    minimumFractionDigits: 0,
+    maximumFractionDigits,
   }).format(value || 0);
 }
 

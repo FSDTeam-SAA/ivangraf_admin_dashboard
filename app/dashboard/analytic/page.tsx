@@ -2,30 +2,29 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
+import { Download } from "lucide-react";
 import { toast } from "sonner";
 
+import { DateFilter } from "@/components/dashboard/date-filter";
+import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PaginationBar } from "@/components/dashboard/pagination-bar";
+import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
 import { usePagination } from "@/components/dashboard/use-pagination";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   getRevenueAnalysis,
   getTimePeriods,
   getTopSoldItems,
   getTypeOfPayment,
-  type PeriodParams,
+  type TopSoldItem,
 } from "@/lib/api";
+import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
 import { formatCurrency } from "@/lib/format";
-
-const periodOptions: { label: string; value: NonNullable<PeriodParams["period"]> }[] = [
-  { label: "This month", value: "thisMonth" },
-  { label: "This year", value: "thisYear" },
-  { label: "Last year", value: "lastYear" },
-];
 
 function buildConicStops(items: { value: number; color: string }[]) {
   const total = items.reduce((sum, item) => sum + item.value, 0);
@@ -58,26 +57,32 @@ function AnalyticCardSkeleton() {
 }
 
 export default function AnalyticPage() {
-  const [period, setPeriod] = React.useState<NonNullable<PeriodParams["period"]>>("thisMonth");
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("last7Days"));
+  const [exportOpen, setExportOpen] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState<TopSoldItem | null>(null);
+
+  const queryParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
+  const referenceDate = queryParams.to || queryParams.from || undefined;
+  const referenceYear = referenceDate ? new Date(referenceDate).getFullYear() : undefined;
 
   const paymentQuery = useQuery({
-    queryKey: ["dashboard", "type-of-payment", period],
-    queryFn: () => getTypeOfPayment({ period }),
+    queryKey: ["dashboard", "type-of-payment", queryParams],
+    queryFn: () => getTypeOfPayment(queryParams),
   });
 
   const timePeriodsQuery = useQuery({
-    queryKey: ["dashboard", "time-periods"],
-    queryFn: () => getTimePeriods(),
+    queryKey: ["dashboard", "time-periods", referenceDate],
+    queryFn: () => getTimePeriods({ referenceDate }),
   });
 
   const revenueAnalysisQuery = useQuery({
-    queryKey: ["dashboard", "revenue-analysis"],
-    queryFn: () => getRevenueAnalysis(),
+    queryKey: ["dashboard", "revenue-analysis", referenceYear],
+    queryFn: () => getRevenueAnalysis(referenceYear ? { year: referenceYear } : undefined),
   });
 
   const topSoldQuery = useQuery({
-    queryKey: ["dashboard", "top-sold-items", period],
-    queryFn: () => getTopSoldItems({ period, limit: 50 }),
+    queryKey: ["dashboard", "top-sold-items", queryParams],
+    queryFn: () => getTopSoldItems({ ...queryParams, limit: 50 }),
   });
 
   React.useEffect(() => {
@@ -121,22 +126,25 @@ export default function AnalyticPage() {
     items: pagedTopRows,
   } = usePagination(topSoldRows, 6);
 
+  React.useEffect(() => {
+    setTopPage(1);
+  }, [dateFilter, setTopPage]);
+
   return (
     <div className="space-y-6">
       <PageHeader
         title="Analytic"
         description="Explore organized analytics data. View data in clear lists. Get useful insights"
+        actions={
+          <>
+            <DateFilter value={dateFilter} onChange={setDateFilter} />
+            <Button variant="soft" onClick={() => setExportOpen(true)}>
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </>
+        }
       />
-
-      <div className="flex justify-end">
-        <Select value={period} onChange={(event) => setPeriod(event.target.value as NonNullable<PeriodParams["period"]>)}>
-          {periodOptions.map((option) => (
-            <option key={option.value} value={option.value}>
-              {option.label}
-            </option>
-          ))}
-        </Select>
-      </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
         {paymentQuery.isLoading ? (
@@ -281,7 +289,11 @@ export default function AnalyticPage() {
                   </TableHeader>
                   <TableBody>
                     {pagedTopRows.map((item) => (
-                      <TableRow key={`${item.articleId}-${item.rank}`}>
+                      <TableRow
+                        key={`${item.articleId}-${item.rank}`}
+                        className="cursor-pointer"
+                        onClick={() => setSelectedItem(item)}
+                      >
                         <TableCell>{item.itemName}</TableCell>
                         <TableCell>{item.totalQty}</TableCell>
                         <TableCell className="text-right">{formatCurrency(item.totalAmount)}</TableCell>
@@ -303,6 +315,38 @@ export default function AnalyticPage() {
           </CardContent>
         </Card>
       </div>
+
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        title="Export"
+        subtitle="Analytic dashboard"
+        reportPath="/api/analytics/analytic-dashboard/export"
+        params={{
+          ...queryParams,
+          limit: 50,
+        }}
+      />
+
+      <RowDetailsDialog
+        open={Boolean(selectedItem)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedItem(null);
+        }}
+        title={selectedItem?.itemName || "Top sold item details"}
+        description="Selected top sold item details"
+        details={
+          selectedItem
+            ? [
+                { label: "Rank", value: selectedItem.rank },
+                { label: "Article ID", value: selectedItem.articleId || "-" },
+                { label: "Item", value: selectedItem.itemName },
+                { label: "Quantity", value: selectedItem.totalQty },
+                { label: "Amount", value: formatCurrency(selectedItem.totalAmount) },
+              ]
+            : []
+        }
+      />
     </div>
   );
 }

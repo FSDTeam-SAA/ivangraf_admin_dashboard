@@ -26,6 +26,28 @@ export interface PaginatedMeta {
   page: number;
   limit: number;
   total: number;
+  period?: string | null;
+  from?: string;
+  to?: string;
+  dateField?: string;
+  summary?: DatasetSummary;
+}
+
+export interface DatasetSummary {
+  type: "amount" | "price" | "quantity" | "count";
+  label: string;
+  value: number;
+  count: number;
+  totalQuantity?: number;
+}
+
+export interface ReportMeta {
+  period?: string | null;
+  from?: string;
+  to?: string;
+  dateField?: string;
+  summary?: DatasetSummary;
+  [key: string]: unknown;
 }
 
 export interface PaymentBreakdownItem {
@@ -74,6 +96,8 @@ export interface SpendGoodItem {
   name: string;
   quantity: number | null;
   unit: string | null;
+  latestPrice?: number;
+  updatedAt?: string;
 }
 
 export interface AllItem {
@@ -81,6 +105,7 @@ export interface AllItem {
   name: string;
   price: number;
   taxGroup: string | null;
+  updatedAt?: string;
 }
 
 export interface RevenueByPaymentItem {
@@ -109,6 +134,7 @@ export interface OpenTableItem {
   sectorName: string | null;
   waiterName: string | null;
   status: string;
+  updatedAt?: string;
 }
 
 export interface StockGoodItem {
@@ -116,6 +142,8 @@ export interface StockGoodItem {
   name: string;
   quantity: number | null;
   unit: string | null;
+  latestPrice?: number;
+  updatedAt?: string;
 }
 
 export interface BillItem {
@@ -159,13 +187,28 @@ export interface ListParams {
   page?: number;
   limit?: number;
   search?: string;
-}
-
-export interface PeriodParams {
-  period?: "thisMonth" | "thisYear" | "lastYear";
+  period?: DatePeriod;
   from?: string;
   to?: string;
 }
+
+export type DatePeriod =
+  | "all"
+  | "today"
+  | "yesterday"
+  | "last7Days"
+  | "custom"
+  | "thisMonth"
+  | "thisYear"
+  | "lastYear";
+
+export interface PeriodParams {
+  period?: DatePeriod;
+  from?: string;
+  to?: string;
+}
+
+export type ExportFormat = "pdf" | "csv" | "json";
 
 async function unwrap<T, M = Record<string, unknown>>(
   request: Promise<AxiosResponse<ApiEnvelope<T, M>>>
@@ -205,39 +248,39 @@ export async function getSyncStatus() {
 }
 
 export async function getTypeOfPayment(params?: PeriodParams) {
-  return unwrap<PaymentBreakdownItem[]>(apiClient.get("/api/analytics/type-of-payment", { params }));
+  return unwrap<PaymentBreakdownItem[], ReportMeta>(apiClient.get("/api/analytics/type-of-payment", { params }));
 }
 
 export async function getTimePeriods(params?: { referenceDate?: string }) {
-  return unwrap<TimePeriodItem[]>(apiClient.get("/api/analytics/time-periods", { params }));
+  return unwrap<TimePeriodItem[], ReportMeta>(apiClient.get("/api/analytics/time-periods", { params }));
 }
 
 export async function getRevenueAnalysis(params?: { year?: number }) {
-  return unwrap<RevenueAnalysisItem[]>(apiClient.get("/api/analytics/revenue-analysis", { params }));
+  return unwrap<RevenueAnalysisItem[], ReportMeta>(apiClient.get("/api/analytics/revenue-analysis", { params }));
 }
 
 export async function getTopSoldItems(params?: PeriodParams & { limit?: number }) {
-  return unwrap<TopSoldItem[]>(apiClient.get("/api/analytics/top-sold-items", { params }));
+  return unwrap<TopSoldItem[], ReportMeta>(apiClient.get("/api/analytics/top-sold-items", { params }));
 }
 
 export async function getSalesItems(params?: PeriodParams) {
-  return unwrap<SalesItem[]>(apiClient.get("/api/analytics/sales-items", { params }));
+  return unwrap<SalesItem[], ReportMeta>(apiClient.get("/api/analytics/sales-items", { params }));
 }
 
 export async function getRevenueByPayment(params?: PeriodParams) {
-  return unwrap<RevenueByPaymentItem[]>(apiClient.get("/api/analytics/revenue-by-payment", { params }));
+  return unwrap<RevenueByPaymentItem[], ReportMeta>(apiClient.get("/api/analytics/revenue-by-payment", { params }));
 }
 
 export async function getRevenueByTaxGroup(params?: PeriodParams) {
-  return unwrap<RevenueTaxGroupItem[]>(apiClient.get("/api/analytics/revenue-by-tax-group", { params }));
+  return unwrap<RevenueTaxGroupItem[], ReportMeta>(apiClient.get("/api/analytics/revenue-by-tax-group", { params }));
 }
 
 export async function getRevenuePerWaiter(params?: PeriodParams) {
-  return unwrap<RevenueWaiterItem[]>(apiClient.get("/api/analytics/revenue-waiter", { params }));
+  return unwrap<RevenueWaiterItem[], ReportMeta>(apiClient.get("/api/analytics/revenue-waiter", { params }));
 }
 
-export async function getOpenTables() {
-  return unwrap<OpenTableItem[]>(apiClient.get("/api/analytics/open-tables"));
+export async function getOpenTables(params?: PeriodParams) {
+  return unwrap<OpenTableItem[], ReportMeta>(apiClient.get("/api/analytics/open-tables", { params }));
 }
 
 export async function getAllItems(params?: ListParams) {
@@ -258,4 +301,29 @@ export async function getBills(params?: ListParams) {
 
 export async function getCancelOrders(params?: ListParams) {
   return unwrap<CancelOrderItem[], PaginatedMeta>(apiClient.get("/api/lists/cancel-orders", { params }));
+}
+
+function parseFileName(disposition?: string) {
+  if (!disposition) return null;
+  const match = disposition.match(/filename=\"?([^\";]+)\"?/i);
+  return match?.[1] || null;
+}
+
+export async function downloadReport(path: string, format: ExportFormat, params?: Record<string, unknown>) {
+  const response = await apiClient.get<Blob>(path, {
+    params: { ...params, format },
+    responseType: "blob",
+  });
+
+  const blob = response.data instanceof Blob ? response.data : new Blob([response.data]);
+  const fileName = parseFileName(response.headers["content-disposition"]) || `report.${format}`;
+  const objectUrl = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = objectUrl;
+  link.download = fileName;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.URL.revokeObjectURL(objectUrl);
 }

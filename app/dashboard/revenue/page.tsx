@@ -5,35 +5,35 @@ import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
+import { DateFilter } from "@/components/dashboard/date-filter";
 import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
 import { usePagination } from "@/components/dashboard/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getRevenueByPayment, type PeriodParams } from "@/lib/api";
+import { getRevenueByPayment, type RevenueByPaymentItem } from "@/lib/api";
+import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
 import { formatCurrency } from "@/lib/format";
 
 const ITEMS_PER_PAGE = 12;
-const periodOptions: { label: string; value: NonNullable<PeriodParams["period"]> }[] = [
-  { label: "This month", value: "thisMonth" },
-  { label: "This year", value: "thisYear" },
-  { label: "Last year", value: "lastYear" },
-];
 
 export default function RevenuePage() {
-  const [period, setPeriod] = React.useState<NonNullable<PeriodParams["period"]>>("thisMonth");
   const [search, setSearch] = React.useState("");
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("last7Days"));
   const [exportOpen, setExportOpen] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState<RevenueByPaymentItem | null>(null);
+
+  const queryParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
 
   const revenueQuery = useQuery({
-    queryKey: ["dashboard", "revenue-by-payment", period],
-    queryFn: () => getRevenueByPayment({ period }),
+    queryKey: ["dashboard", "revenue-by-payment", queryParams],
+    queryFn: () => getRevenueByPayment(queryParams),
   });
 
   React.useEffect(() => {
@@ -49,11 +49,16 @@ export default function RevenuePage() {
     return rows.filter((item) => item.paymentTypeName.toLowerCase().includes(term));
   }, [revenueQuery.data?.data, search]);
 
+  const totalAmount = React.useMemo(
+    () => filteredRows.reduce((sum, item) => sum + item.total, 0),
+    [filteredRows]
+  );
+
   const { page, setPage, totalPages, totalItems, items } = usePagination(filteredRows, ITEMS_PER_PAGE);
 
   React.useEffect(() => {
     setPage(1);
-  }, [period, search, setPage]);
+  }, [dateFilter, search, setPage]);
 
   return (
     <div className="space-y-6">
@@ -62,17 +67,11 @@ export default function RevenuePage() {
         description="See revenue by payment type for the selected period."
         actions={
           <>
+            <DateFilter value={dateFilter} onChange={setDateFilter} />
             <Button variant="soft" onClick={() => setExportOpen(true)}>
               <Download className="h-4 w-4" />
               Export
             </Button>
-            <Select value={period} onChange={(event) => setPeriod(event.target.value as NonNullable<PeriodParams["period"]>)}>
-              {periodOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
           </>
         }
       />
@@ -91,7 +90,11 @@ export default function RevenuePage() {
             </TableHeader>
             <TableBody>
               {items.map((item) => (
-                <TableRow key={`${item.paymentTypeId}-${item.paymentTypeName}`}>
+                <TableRow
+                  key={`${item.paymentTypeId}-${item.paymentTypeName}`}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedItem(item)}
+                >
                   <TableCell className="font-medium">{item.paymentTypeName}</TableCell>
                   <TableCell>{formatCurrency(item.total)}</TableCell>
                   <TableCell>
@@ -112,8 +115,8 @@ export default function RevenuePage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
-          totalLabel="Total of all"
-          totalValue={`${totalItems} Payments`}
+          totalLabel="Total amount"
+          totalValue={formatCurrency(totalAmount)}
           page={page}
           totalPages={totalPages}
           totalItems={totalItems}
@@ -122,7 +125,36 @@ export default function RevenuePage() {
         />
       </Card>
 
-      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} title="Export" subtitle="Revenue" />
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        title="Export"
+        subtitle="Revenue"
+        reportPath="/api/analytics/revenue-by-payment/export"
+        params={{
+          search: search || undefined,
+          ...queryParams,
+        }}
+      />
+
+      <RowDetailsDialog
+        open={Boolean(selectedItem)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedItem(null);
+        }}
+        title={selectedItem?.paymentTypeName || "Revenue details"}
+        description="Selected payment type details"
+        details={
+          selectedItem
+            ? [
+                { label: "Payment Type ID", value: selectedItem.paymentTypeId || "-" },
+                { label: "Payment Type", value: selectedItem.paymentTypeName },
+                { label: "Total", value: formatCurrency(selectedItem.total) },
+                { label: "Percent of all items", value: `${selectedItem.percent}%` },
+              ]
+            : []
+        }
+      />
     </div>
   );
 }

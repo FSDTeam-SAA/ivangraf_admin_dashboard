@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import { toast } from "sonner";
 
 import {
   Dialog,
@@ -10,19 +11,40 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { downloadReport, type ExportFormat } from "@/lib/api";
+import { getErrorMessage } from "@/lib/error";
 import { cn } from "@/lib/utils";
 
-const exportOptions = ["Pdf", "Excel", "Docx"];
+const exportOptions: { label: string; value: ExportFormat; description: string }[] = [
+  { label: "PDF", value: "pdf", description: "Document download for sharing or printing." },
+  { label: "Excel CSV", value: "csv", description: "Spreadsheet-friendly export." },
+  { label: "JSON", value: "json", description: "Raw structured data export." },
+];
 
 interface ExportDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   title: string;
   subtitle: string;
+  reportPath: string;
+  params?: Record<string, unknown>;
 }
 
-export function ExportDialog({ open, onOpenChange, title, subtitle }: ExportDialogProps) {
-  const [selected, setSelected] = React.useState(exportOptions[0]);
+export function ExportDialog({ open, onOpenChange, title, subtitle, reportPath, params }: ExportDialogProps) {
+  const [selected, setSelected] = React.useState<ExportFormat>(exportOptions[0].value);
+  const [isExporting, setIsExporting] = React.useState(false);
+
+  const handleExport = async () => {
+    try {
+      setIsExporting(true);
+      await downloadReport(reportPath, selected, params);
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(getErrorMessage(error, "Failed to export report"));
+    } finally {
+      setIsExporting(false);
+    }
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -37,22 +59,25 @@ export function ExportDialog({ open, onOpenChange, title, subtitle }: ExportDial
           <div className="space-y-4">
             {exportOptions.map((option) => (
               <button
-                key={option}
+                key={option.value}
                 type="button"
-                onClick={() => setSelected(option)}
+                onClick={() => setSelected(option.value)}
                 className={cn(
                   "flex w-full items-center justify-between rounded-xl border border-[#f1d6a4] bg-white px-4 py-3 text-left text-sm font-medium text-[#5f513a] shadow-sm",
-                  selected === option && "ring-2 ring-[#d39a2f]"
+                  selected === option.value && "ring-2 ring-[#d39a2f]"
                 )}
               >
-                <span>{option}</span>
+                <div>
+                  <div>{option.label}</div>
+                  <div className="mt-1 text-xs font-normal text-[#927b52]">{option.description}</div>
+                </div>
                 <span
                   className={cn(
                     "flex h-5 w-5 items-center justify-center rounded-full border border-[#d39a2f]",
-                    selected === option ? "bg-[#d39a2f]" : "bg-white"
+                    selected === option.value ? "bg-[#d39a2f]" : "bg-white"
                   )}
                 >
-                  {selected === option ? (
+                  {selected === option.value ? (
                     <span className="block h-2 w-2 rounded-full bg-white" />
                   ) : null}
                 </span>
@@ -60,8 +85,8 @@ export function ExportDialog({ open, onOpenChange, title, subtitle }: ExportDial
             ))}
           </div>
           <div className="mt-6">
-            <Button variant="gold" size="lg" className="w-full">
-              Export Now
+            <Button variant="gold" size="lg" className="w-full" onClick={handleExport} disabled={isExporting}>
+              {isExporting ? "Exporting..." : "Export Now"}
             </Button>
           </div>
         </div>

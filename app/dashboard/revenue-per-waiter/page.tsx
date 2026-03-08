@@ -5,35 +5,35 @@ import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
+import { DateFilter } from "@/components/dashboard/date-filter";
 import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
+import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
 import { usePagination } from "@/components/dashboard/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Select } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getRevenuePerWaiter, type PeriodParams } from "@/lib/api";
+import { getRevenuePerWaiter, type RevenueWaiterItem } from "@/lib/api";
+import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
 import { formatCurrency } from "@/lib/format";
 
 const ITEMS_PER_PAGE = 12;
-const periodOptions: { label: string; value: NonNullable<PeriodParams["period"]> }[] = [
-  { label: "This month", value: "thisMonth" },
-  { label: "This year", value: "thisYear" },
-  { label: "Last year", value: "lastYear" },
-];
 
 export default function RevenuePerWaiterPage() {
-  const [period, setPeriod] = React.useState<NonNullable<PeriodParams["period"]>>("thisMonth");
   const [search, setSearch] = React.useState("");
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("last7Days"));
   const [exportOpen, setExportOpen] = React.useState(false);
+  const [selectedItem, setSelectedItem] = React.useState<RevenueWaiterItem | null>(null);
+
+  const queryParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
 
   const waiterQuery = useQuery({
-    queryKey: ["dashboard", "revenue-waiter", period],
-    queryFn: () => getRevenuePerWaiter({ period }),
+    queryKey: ["dashboard", "revenue-waiter", queryParams],
+    queryFn: () => getRevenuePerWaiter(queryParams),
   });
 
   React.useEffect(() => {
@@ -49,11 +49,16 @@ export default function RevenuePerWaiterPage() {
     return rows.filter((item) => item.waiterName.toLowerCase().includes(term));
   }, [waiterQuery.data?.data, search]);
 
+  const totalAmount = React.useMemo(
+    () => filteredRows.reduce((sum, item) => sum + item.total, 0),
+    [filteredRows]
+  );
+
   const { page, setPage, totalPages, totalItems, items } = usePagination(filteredRows, ITEMS_PER_PAGE);
 
   React.useEffect(() => {
     setPage(1);
-  }, [period, search, setPage]);
+  }, [dateFilter, search, setPage]);
 
   return (
     <div className="space-y-6">
@@ -62,17 +67,11 @@ export default function RevenuePerWaiterPage() {
         description="See waiter performance and contribution for the selected period."
         actions={
           <>
+            <DateFilter value={dateFilter} onChange={setDateFilter} />
             <Button variant="soft" onClick={() => setExportOpen(true)}>
               <Download className="h-4 w-4" />
               Export
             </Button>
-            <Select value={period} onChange={(event) => setPeriod(event.target.value as NonNullable<PeriodParams["period"]>)}>
-              {periodOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </Select>
           </>
         }
       />
@@ -91,7 +90,11 @@ export default function RevenuePerWaiterPage() {
             </TableHeader>
             <TableBody>
               {items.map((item) => (
-                <TableRow key={`${item.waiterId}-${item.waiterName}`}>
+                <TableRow
+                  key={`${item.waiterId}-${item.waiterName}`}
+                  className="cursor-pointer"
+                  onClick={() => setSelectedItem(item)}
+                >
                   <TableCell className="font-medium">{item.waiterName}</TableCell>
                   <TableCell>{formatCurrency(item.total)}</TableCell>
                   <TableCell>
@@ -112,8 +115,8 @@ export default function RevenuePerWaiterPage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
-          totalLabel="Total of all"
-          totalValue={`${totalItems} Waiters`}
+          totalLabel="Total amount"
+          totalValue={formatCurrency(totalAmount)}
           page={page}
           totalPages={totalPages}
           totalItems={totalItems}
@@ -122,7 +125,36 @@ export default function RevenuePerWaiterPage() {
         />
       </Card>
 
-      <ExportDialog open={exportOpen} onOpenChange={setExportOpen} title="Export" subtitle="Revenue Per Waiter" />
+      <ExportDialog
+        open={exportOpen}
+        onOpenChange={setExportOpen}
+        title="Export"
+        subtitle="Revenue per waiter"
+        reportPath="/api/analytics/revenue-waiter/export"
+        params={{
+          search: search || undefined,
+          ...queryParams,
+        }}
+      />
+
+      <RowDetailsDialog
+        open={Boolean(selectedItem)}
+        onOpenChange={(open) => {
+          if (!open) setSelectedItem(null);
+        }}
+        title={selectedItem?.waiterName || "Waiter details"}
+        description="Selected waiter revenue details"
+        details={
+          selectedItem
+            ? [
+                { label: "Waiter ID", value: selectedItem.waiterId || "-" },
+                { label: "Waiter", value: selectedItem.waiterName },
+                { label: "Total", value: formatCurrency(selectedItem.total) },
+                { label: "Percent of all waiters", value: `${selectedItem.percentOfAllWaiters}%` },
+              ]
+            : []
+        }
+      />
     </div>
   );
 }
