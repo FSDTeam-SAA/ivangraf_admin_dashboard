@@ -97,17 +97,22 @@ export default function StockOfGoodsPage() {
             </TableHeader>
             <TableBody>
               {rows.map((item) => {
-                const quantity = item.quantity || 0;
-                const isLow = quantity > 0 && quantity < 20;
+                const quantity = item.quantity ?? item.inStock ?? 0;
+                const status =
+                  item.status || (quantity > 0 ? "Healthy" : quantity === 0 ? "Out of stock" : "Negative stock");
+                const statusClass =
+                  status === "Healthy"
+                    ? "text-[#22c55e]"
+                    : status === "Out of stock"
+                      ? "text-[#9b6b26]"
+                      : "text-[#ef4444]";
 
                 return (
-                  <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
-                    <TableCell className="font-medium">{item.name}</TableCell>
-                    <TableCell>{item.quantity ?? "-"}</TableCell>
-                    <TableCell>{item.unit || "-"}</TableCell>
-                    <TableCell className={isLow ? "text-[#ef4444]" : "text-[#22c55e]"}>
-                      {isLow ? "Low" : "Healthy"}
-                    </TableCell>
+                  <TableRow key={item.goodId || item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
+                    <TableCell className="font-medium">{item.itemName || item.name}</TableCell>
+                    <TableCell>{item.quantity ?? item.inStock ?? "-"}</TableCell>
+                    <TableCell>{item.unitType || item.unit || "-"}</TableCell>
+                    <TableCell className={statusClass}>{status}</TableCell>
                   </TableRow>
                 );
               })}
@@ -145,19 +150,25 @@ export default function StockOfGoodsPage() {
         onOpenChange={(open) => {
           if (!open) setSelectedItem(null);
         }}
-        title={selectedItem?.name || "Stock details"}
+        title={selectedItem?.itemName || selectedItem?.name || "Stock details"}
         description="Selected stock details"
         details={
           selectedItem
             ? [
-                { label: "Item ID", value: selectedItem.id },
-                { label: "Name", value: selectedItem.name },
-                { label: "In Stock", value: selectedItem.quantity ?? "-" },
-                { label: "Unit", value: selectedItem.unit || "-" },
+                { label: "Item ID", value: selectedItem.goodId || selectedItem.id },
+                { label: "Name", value: selectedItem.itemName || selectedItem.name },
+                { label: "In Stock", value: selectedItem.quantity ?? selectedItem.inStock ?? "-" },
+                { label: "Unit", value: selectedItem.unitType || selectedItem.unit || "-" },
                 { label: "Latest Price", value: formatCurrency(selectedItem.latestPrice || 0) },
                 {
                   label: "Status",
-                  value: (selectedItem.quantity || 0) > 0 && (selectedItem.quantity || 0) < 20 ? "Low" : "Healthy",
+                  value:
+                    selectedItem.status ||
+                    ((selectedItem.quantity ?? selectedItem.inStock ?? 0) > 0
+                      ? "Healthy"
+                      : (selectedItem.quantity ?? selectedItem.inStock ?? 0) === 0
+                        ? "Out of stock"
+                        : "Negative stock"),
                 },
                 { label: "Updated", value: formatDate(selectedItem.updatedAt) },
               ]

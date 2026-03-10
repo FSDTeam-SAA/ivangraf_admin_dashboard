@@ -83,8 +83,8 @@ export default function AllItemsPage() {
             <TableBody>
               {rows.map((item) => (
                 <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
-                  <TableCell>{item.taxGroup || "-"}</TableCell>
+                  <TableCell className="font-medium">{item.itemName || item.name}</TableCell>
+                  <TableCell>{item.displayTaxGroup || "-"}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
                 </TableRow>
               ))}
@@ -117,14 +117,14 @@ export default function AllItemsPage() {
         onOpenChange={(open) => {
           if (!open) setSelectedItem(null);
         }}
-        title={selectedItem?.name || "Item details"}
+        title={selectedItem?.itemName || selectedItem?.name || "Item details"}
         description="Selected item details"
         details={
           selectedItem
             ? [
                 { label: "Item ID", value: selectedItem.id },
-                { label: "Name", value: selectedItem.name },
-                { label: "Tax Group", value: selectedItem.taxGroup || "-" },
+                { label: "Name", value: selectedItem.itemName || selectedItem.name },
+                { label: "Tax Group", value: selectedItem.displayTaxGroup || "-" },
                 { label: "Price", value: formatCurrency(selectedItem.price) },
                 { label: "Updated", value: formatDate(selectedItem.updatedAt) },
               ]

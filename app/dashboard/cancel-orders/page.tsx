@@ -25,7 +25,7 @@ const ITEMS_PER_PAGE = 12;
 export default function CancelOrdersPage() {
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState("");
-  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("last7Days"));
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [detailExportOpen, setDetailExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<CancelOrderItem | null>(null);
@@ -160,7 +160,6 @@ export default function CancelOrdersPage() {
         details={
           selectedItem
             ? [
-                { label: "Order ID", value: detailData?.invoiceId || selectedItem.id },
                 {
                   label: "Order Number",
                   value: detailData?.invoiceNumberFormatted || selectedItem.orderNumber,

@@ -96,10 +96,10 @@ export default function ListOfSpendGoodsPage() {
             </TableHeader>
             <TableBody>
               {rows.map((item) => (
-                <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
-                  <TableCell className="font-medium">{item.name}</TableCell>
+                <TableRow key={item.goodId || item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
+                  <TableCell className="font-medium">{item.itemName || item.name}</TableCell>
                   <TableCell>{item.quantity ?? "-"}</TableCell>
-                  <TableCell>{item.unit || "-"}</TableCell>
+                  <TableCell>{item.unitType || item.unit || "-"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -136,15 +136,15 @@ export default function ListOfSpendGoodsPage() {
         onOpenChange={(open) => {
           if (!open) setSelectedItem(null);
         }}
-        title={selectedItem?.name || "Spend goods details"}
+        title={selectedItem?.itemName || selectedItem?.name || "Spend goods details"}
         description="Selected goods details"
         details={
           selectedItem
             ? [
-                { label: "Item ID", value: selectedItem.id },
-                { label: "Name", value: selectedItem.name },
+                { label: "Item ID", value: selectedItem.goodId || selectedItem.id },
+                { label: "Name", value: selectedItem.itemName || selectedItem.name },
                 { label: "Quantity", value: selectedItem.quantity ?? "-" },
-                { label: "Unit", value: selectedItem.unit || "-" },
+                { label: "Unit", value: selectedItem.unitType || selectedItem.unit || "-" },
                 { label: "Latest Price", value: formatCurrency(selectedItem.latestPrice || 0) },
                 { label: "Updated", value: formatDate(selectedItem.updatedAt) },
               ]

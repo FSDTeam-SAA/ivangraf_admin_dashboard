@@ -25,7 +25,7 @@ const ITEMS_PER_PAGE = 12;
 
 export default function RevenuePerWaiterPage() {
   const [search, setSearch] = React.useState("");
-  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("last7Days"));
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<RevenueWaiterItem | null>(null);
 

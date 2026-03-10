@@ -95,19 +95,26 @@ export interface SalesItem {
 }
 
 export interface SpendGoodItem {
-  id: string;
-  name: string;
+  goodId: string;
+  id?: string;
+  itemName: string;
+  name?: string;
   quantity: number | null;
-  unit: string | null;
+  unitType: string | null;
+  unit?: string | null;
   latestPrice?: number;
   updatedAt?: string;
 }
 
 export interface AllItem {
   id: string;
-  name: string;
+  itemId?: string;
+  itemName: string;
+  name?: string;
   price: number;
   taxGroup: string | null;
+  taxValue: number | null;
+  displayTaxGroup: string;
   updatedAt?: string;
 }
 
@@ -182,10 +189,15 @@ export interface CancelOrderDetails {
 }
 
 export interface StockGoodItem {
-  id: string;
-  name: string;
+  goodId: string;
+  id?: string;
+  itemName: string;
+  name?: string;
+  inStock?: number;
   quantity: number | null;
-  unit: string | null;
+  unitType: string | null;
+  unit?: string | null;
+  status?: string;
   latestPrice?: number;
   updatedAt?: string;
 }

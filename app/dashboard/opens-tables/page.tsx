@@ -134,7 +134,6 @@ export default function OpensTablesPage() {
         details={
           selectedItem
             ? [
-                { label: "Table ID", value: detailData?.tableId || selectedItem.tableId },
                 { label: "Table", value: detailData?.tableName || selectedItem.tableName },
                 { label: "Waiter", value: detailData?.waiter || selectedItem.waiterName || "-" },
                 { label: "Status", value: selectedItem.status },

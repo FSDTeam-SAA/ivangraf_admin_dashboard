@@ -154,7 +154,6 @@ export default function BillsPage() {
         details={
           selectedItem
             ? [
-                { label: "Bill ID", value: detailData?.invoiceId || selectedItem.id },
                 { label: "Bill Number", value: detailData?.invoiceNumberFormatted || selectedItem.invoiceNumber },
                 { label: "Table", value: detailData?.tableName || "-" },
                 { label: "Waiter", value: detailData?.waiter || selectedItem.waiter || "-" },

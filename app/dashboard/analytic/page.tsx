@@ -55,8 +55,34 @@ function AnalyticCardSkeleton() {
   );
 }
 
+const PAYMENT_CHART_COLORS = [
+  "#2563eb",
+  "#16a34a",
+  "#dc2626",
+  "#f59e0b",
+  "#7c3aed",
+  "#0891b2",
+  "#ea580c",
+  "#be123c",
+  "#4d7c0f",
+  "#0f766e",
+];
+
+const TOP_SOLD_CHART_COLORS = [
+  "#0f766e",
+  "#9333ea",
+  "#e11d48",
+  "#2563eb",
+  "#65a30d",
+  "#d97706",
+  "#0284c7",
+  "#b91c1c",
+  "#4f46e5",
+  "#059669",
+];
+
 export default function AnalyticPage() {
-  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("last7Days"));
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState<RevenueAnalysisItem | null>(null);
 
@@ -93,13 +119,13 @@ export default function AnalyticPage() {
   const paymentStops = buildConicStops(
     paymentItems.map((item, index) => ({
       value: item.totalAmount,
-      color: ["#c18b1f", "#d9a441", "#f1c66b", "#ab7a1a", "#e8b85c"][index % 5],
+      color: PAYMENT_CHART_COLORS[index % PAYMENT_CHART_COLORS.length],
     }))
   );
   const topSoldStops = buildConicStops(
     topSoldRows.map((item, index) => ({
       value: item.totalAmount,
-      color: ["#e28a00", "#f3c774", "#cfa344", "#a86f00", "#ecc16d"][index % 5],
+      color: TOP_SOLD_CHART_COLORS[index % TOP_SOLD_CHART_COLORS.length],
     }))
   );
   const topSoldGrand = topSoldRows.reduce((sum, row) => sum + row.totalAmount, 0);
@@ -163,7 +189,7 @@ export default function AnalyticPage() {
                     <span className="flex items-center gap-2">
                       <span
                         className="h-2.5 w-2.5 rounded-full"
-                        style={{ background: ["#c18b1f", "#d9a441", "#f1c66b", "#ab7a1a", "#e8b85c"][index % 5] }}
+                        style={{ background: PAYMENT_CHART_COLORS[index % PAYMENT_CHART_COLORS.length] }}
                       />
                       {item.paymentType}
                     </span>
@@ -202,7 +228,7 @@ export default function AnalyticPage() {
                       <span className="flex items-center gap-2">
                         <span
                           className="h-2.5 w-2.5 rounded-full"
-                          style={{ background: ["#e28a00", "#f3c774", "#cfa344", "#a86f00", "#ecc16d"][index % 5] }}
+                          style={{ background: TOP_SOLD_CHART_COLORS[index % TOP_SOLD_CHART_COLORS.length] }}
                         />
                         {item.itemName}
                       </span>
@@ -216,33 +242,35 @@ export default function AnalyticPage() {
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr]">
+      <div className="grid gap-6 lg:grid-cols-[1.05fr_0.95fr] lg:items-start">
         <Card>
           <CardHeader>
             <CardTitle>Revenue Analysis</CardTitle>
-            <p className="text-sm text-[#7b6a48]">Monthly comparison with years included.</p>
+            <p className="text-sm text-[#7b6a48]">Bottom-origin monthly bar chart for year comparison.</p>
           </CardHeader>
           <CardContent>
             {revenueAnalysisQuery.isLoading ? (
               <Skeleton className="h-[260px] w-full" />
             ) : (
               <>
-                <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
-                  {revenueRows.map((item) => (
-                    <div key={item.monthNumber} className="flex flex-col items-center gap-2">
-                      <div className="flex items-end gap-1">
-                        <div
-                          className="w-2 rounded-sm bg-[#f4d58a]"
-                          style={{ height: `${((item.lastYearTotal || 0) / maxRevenue) * 140}px` }}
-                        />
-                        <div
-                          className="w-2 rounded-sm bg-[#c18b1f]"
-                          style={{ height: `${((item.thisYearTotal || 0) / maxRevenue) * 140}px` }}
-                        />
+                <div className="relative rounded-xl border border-[#f1dfb7] bg-[#fff8ea] px-3 pb-3 pt-4">
+                  <div className="grid grid-cols-6 gap-2 sm:grid-cols-12">
+                    {revenueRows.map((item) => (
+                      <div key={item.monthNumber} className="flex flex-col items-center">
+                        <div className="flex h-[230px] items-end gap-1">
+                          <div
+                            className="w-2 rounded-sm bg-[#f4d58a]"
+                            style={{ height: `${Math.max(((item.lastYearTotal || 0) / maxRevenue) * 200, 2)}px` }}
+                          />
+                          <div
+                            className="w-2 rounded-sm bg-[#c18b1f]"
+                            style={{ height: `${Math.max(((item.thisYearTotal || 0) / maxRevenue) * 200, 2)}px` }}
+                          />
+                        </div>
+                        <div className="mt-2 text-center text-[10px] text-[#7b6a48]">{item.monthName.slice(0, 3)}</div>
                       </div>
-                      <div className="text-center text-[10px] text-[#7b6a48]">{item.monthPairLabel}</div>
-                    </div>
-                  ))}
+                    ))}
+                  </div>
                 </div>
                 <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-[#7b6a48]">
                   <span className="flex items-center gap-2">
@@ -291,7 +319,7 @@ export default function AnalyticPage() {
                           className="cursor-pointer"
                           onClick={() => setSelectedRow(item)}
                         >
-                          <TableCell>{item.monthComparisonLabel}</TableCell>
+                          <TableCell>{item.monthName}</TableCell>
                           <TableCell className="text-right">{formatCurrency(item.lastYearTotal)}</TableCell>
                           <TableCell className="text-right">{formatCurrency(item.thisYearTotal)}</TableCell>
                           <TableCell className={`text-right ${hasGrowth ? "text-[#128a3a]" : "text-[#b33a2f]"}`}>
@@ -335,12 +363,12 @@ export default function AnalyticPage() {
         onOpenChange={(open) => {
           if (!open) setSelectedRow(null);
         }}
-        title={selectedRow?.monthComparisonLabel || "Revenue comparison details"}
+        title={selectedRow?.monthName || "Revenue comparison details"}
         description="Selected revenue comparison details"
         details={
           selectedRow
             ? [
-                { label: "Comparison", value: selectedRow.monthComparisonLabel },
+                { label: "Month", value: selectedRow.monthName },
                 { label: `${selectedRow.lastYear} total`, value: formatCurrency(selectedRow.lastYearTotal) },
                 { label: `${selectedRow.thisYear} total`, value: formatCurrency(selectedRow.thisYearTotal) },
                 { label: "Difference", value: formatCurrency(selectedRow.differenceAmount) },
