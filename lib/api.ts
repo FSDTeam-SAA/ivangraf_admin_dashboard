@@ -242,7 +242,8 @@ export interface LoginResponse {
 }
 
 export interface UserPreferences {
-  favoriteSidebarItems: string[];
+  favoriteSidebarItems?: string[];
+  activeConnectionId?: string | null;
 }
 
 export interface ListParams {
@@ -293,6 +294,16 @@ export async function getUserPreferences() {
 
 export async function updateUserPreferences(payload: UserPreferences) {
   return unwrap<UserPreferences>(apiClient.patch("/api/auth/preferences", payload));
+}
+
+export async function getActiveConnectionPreference() {
+  return unwrap<{ activeConnectionId: string | null }>(apiClient.get("/api/auth/active-connection"));
+}
+
+export async function updateActiveConnectionPreference(activeConnectionId: string | null) {
+  return unwrap<{ activeConnectionId: string | null }>(
+    apiClient.patch("/api/auth/active-connection", { activeConnectionId })
+  );
 }
 
 export async function runSyncNow() {

@@ -29,7 +29,6 @@ import {
   getUserPreferences,
   updateUserPreferences,
 } from "@/lib/api";
-import { clearActiveConnectionId } from "@/lib/connection-storage";
 import { getErrorMessage } from "@/lib/error";
 import { cn } from "@/lib/utils";
 
@@ -125,8 +124,8 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
   };
 
   async function handleLogout() {
-    clearActiveConnectionId();
     queryClient.removeQueries({ queryKey: ["user", "preferences"] });
+    queryClient.removeQueries({ queryKey: ["user", "active-connection"] });
     await signOut({ callbackUrl: "/auth/login" });
   }
 
