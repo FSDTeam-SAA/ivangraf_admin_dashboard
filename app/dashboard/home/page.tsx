@@ -36,7 +36,7 @@ function DatabaseSkeleton() {
 
 export default function HomePage() {
   const queryClient = useQueryClient();
-  const { activeConnectionId, setActiveConnection } = useActiveConnection();
+  const { activeConnectionId, setActiveConnection, isConnectionReady } = useActiveConnection();
 
   const connectionsQuery = useQuery({
     queryKey: ["connections"],
@@ -60,13 +60,25 @@ export default function HomePage() {
   });
 
   React.useEffect(() => {
+    if (!isConnectionReady) {
+      return;
+    }
+
     const list = connectionsQuery.data?.data || [];
-    if (!list.length || activeConnectionId) {
+    if (!list.length) {
+      return;
+    }
+
+    const activeConnectionExists = activeConnectionId
+      ? list.some((connection) => connection.id === activeConnectionId)
+      : false;
+
+    if (activeConnectionExists) {
       return;
     }
 
     setActiveConnection(list[0].id);
-  }, [activeConnectionId, connectionsQuery.data?.data, setActiveConnection]);
+  }, [activeConnectionId, connectionsQuery.data?.data, isConnectionReady, setActiveConnection]);
 
   React.useEffect(() => {
     if (!connectionsQuery.error) return;
