@@ -22,7 +22,7 @@ export function Providers({ children }: ProvidersProps) {
         defaultOptions: {
           queries: {
             staleTime: 0,
-            gcTime: 10 * 60 * 1000,
+            gcTime: 0,
             refetchOnWindowFocus: true,
             refetchOnMount: "always",
             refetchOnReconnect: true,
