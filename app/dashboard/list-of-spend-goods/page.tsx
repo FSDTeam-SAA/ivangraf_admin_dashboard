@@ -109,6 +109,7 @@ export default function ListOfSpendGoodsPage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
+          showTotal={false}
           totalLabel={summary?.label || "Total"}
           totalValue={formatSummaryValue(summary, totalItems)}
           page={page}
@@ -141,7 +142,6 @@ export default function ListOfSpendGoodsPage() {
         details={
           selectedItem
             ? [
-                { label: "Item ID", value: selectedItem.goodId || selectedItem.id },
                 { label: "Name", value: selectedItem.itemName || selectedItem.name },
                 { label: "Quantity", value: selectedItem.quantity ?? "-" },
                 { label: "Unit", value: selectedItem.unitType || selectedItem.unit || "-" },

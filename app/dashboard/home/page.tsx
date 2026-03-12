@@ -107,6 +107,8 @@ export default function HomePage() {
         <div className="grid gap-6 md:grid-cols-2">
           {(connectionsQuery.data?.data || []).map((database, index) => {
             const isActive = activeConnectionId === database.id;
+            const isMerged = database.kind === "merged" || Boolean(database.isMerged);
+            const sourceCount = database.sourceConnectionCount || database.sourceConnectionIds?.length || 0;
 
             return (
               <Card
@@ -131,12 +133,23 @@ export default function HomePage() {
                   </div>
 
                   <div>
-                    <p className="text-lg font-semibold text-[#2f2a21]">{database.label || database.database}</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="text-lg font-semibold text-[#2f2a21]">{database.label || database.database}</p>
+                      {isMerged ? (
+                        <span className="inline-flex items-center rounded-full border border-[#c7c2f0] bg-[#f3f1ff] px-2 py-0.5 text-[11px] font-semibold uppercase tracking-[0.12em] text-[#5650a4]">
+                          Merged
+                        </span>
+                      ) : null}
+                    </div>
                     <p className="text-xs text-[#7b6a48]">
-                      {database.host}:{database.port} - {database.database}
+                      {isMerged
+                        ? `Sources: ${sourceCount} - ${database.database}`
+                        : `${database.host || "-"}:${database.port || "-"} - ${database.database}`}
                     </p>
                     <p className="mt-2 text-xs text-[#7b6a48]">
-                      Last Sync: {formatDate(database.lastSyncAt)}
+                      {isMerged
+                        ? "Merged database (read-only source aggregate)"
+                        : `Last Sync: ${formatDate(database.lastSyncAt)}`}
                     </p>
                   </div>
 
@@ -152,10 +165,14 @@ export default function HomePage() {
                     </Button>
                     <Button
                       variant="outline"
-                      disabled={syncMutation.isPending || !isActive}
+                      disabled={syncMutation.isPending || !isActive || isMerged}
                       onClick={() => syncMutation.mutate()}
                     >
-                      {syncMutation.isPending && isActive ? "Syncing..." : "Run Sync"}
+                      {isMerged
+                        ? "Sync sources"
+                        : syncMutation.isPending && isActive
+                          ? "Syncing..."
+                          : "Run Sync"}
                     </Button>
                   </div>
                 </CardContent>

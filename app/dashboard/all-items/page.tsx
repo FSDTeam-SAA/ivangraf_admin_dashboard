@@ -94,6 +94,7 @@ export default function AllItemsPage() {
 
         <TableFooter
           showSearch={false}
+          showTotal={false}
           totalLabel={summary?.label || "Total"}
           totalValue={formatSummaryValue(summary, totalItems)}
           page={page}
@@ -122,7 +123,6 @@ export default function AllItemsPage() {
         details={
           selectedItem
             ? [
-                { label: "Item ID", value: selectedItem.id },
                 { label: "Name", value: selectedItem.itemName || selectedItem.name },
                 { label: "Tax Group", value: selectedItem.displayTaxGroup || "-" },
                 { label: "Price", value: formatCurrency(selectedItem.price) },

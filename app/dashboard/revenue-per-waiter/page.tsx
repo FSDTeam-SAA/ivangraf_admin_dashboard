@@ -147,7 +147,6 @@ export default function RevenuePerWaiterPage() {
         details={
           selectedItem
             ? [
-                { label: "Waiter ID", value: selectedItem.waiterId || "-" },
                 { label: "Waiter", value: selectedItem.waiterName },
                 { label: "Total", value: formatCurrency(selectedItem.total) },
                 { label: "Percent of all waiters", value: `${selectedItem.percentOfAllWaiters}%` },

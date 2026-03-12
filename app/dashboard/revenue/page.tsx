@@ -147,7 +147,6 @@ export default function RevenuePage() {
         details={
           selectedItem
             ? [
-                { label: "Payment Type ID", value: selectedItem.paymentTypeId || "-" },
                 { label: "Payment Type", value: selectedItem.paymentTypeName },
                 { label: "Total", value: formatCurrency(selectedItem.total) },
                 { label: "Percent of all items", value: `${selectedItem.percent}%` },

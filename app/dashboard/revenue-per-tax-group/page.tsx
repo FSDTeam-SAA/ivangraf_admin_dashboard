@@ -48,8 +48,8 @@ export default function RevenuePerTaxGroupPage() {
     return rows.filter((item) => item.taxGroup.toLowerCase().includes(term));
   }, [taxGroupQuery.data?.data, search]);
 
-  const totalAmount = React.useMemo(
-    () => filteredRows.reduce((sum, item) => sum + item.total, 0),
+  const totalTaxAmount = React.useMemo(
+    () => filteredRows.reduce((sum, item) => sum + item.taxAmount, 0),
     [filteredRows]
   );
 
@@ -102,8 +102,8 @@ export default function RevenuePerTaxGroupPage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
-          totalLabel="Total amount"
-          totalValue={formatCurrency(totalAmount)}
+          totalLabel="Total amount of tax"
+          totalValue={formatCurrency(totalTaxAmount)}
           page={page}
           totalPages={totalPages}
           totalItems={totalItems}

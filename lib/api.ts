@@ -11,10 +11,16 @@ export interface ApiEnvelope<T, M = Record<string, unknown>> {
 
 export interface Connection {
   id: string;
-  host: string;
-  port: number;
+  profileId?: string | null;
+  kind?: "direct" | "merged";
+  isMerged?: boolean;
+  sourceConnectionIds?: string[];
+  sourceConnectionCount?: number;
+  host: string | null;
+  port: number | null;
   database: string;
-  username: string;
+  mongoRefName?: string;
+  username: string | null;
   encrypt: boolean;
   label: string;
   lastSyncAt?: string | null;

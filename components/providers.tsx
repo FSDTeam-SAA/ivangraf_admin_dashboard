@@ -2,9 +2,7 @@
 
 import * as React from "react";
 import { SessionProvider } from "next-auth/react";
-import { QueryClient } from "@tanstack/react-query";
-import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
-import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 
 interface ProvidersProps {
@@ -12,33 +10,22 @@ interface ProvidersProps {
 }
 
 export function Providers({ children }: ProvidersProps) {
-  const [persister] = React.useState(() => {
-    const storage =
-      typeof window !== "undefined"
-        ? window.localStorage
-        : {
-            getItem: () => null,
-            setItem: () => {},
-            removeItem: () => {},
-          };
-
-    return createSyncStoragePersister({
-      key: "ivangraf.react-query-cache",
-      storage,
-      throttleTime: 1000,
-    });
-  });
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.localStorage.removeItem("ivangraf.react-query-cache");
+    }
+  }, []);
 
   const [queryClient] = React.useState(
     () =>
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 5 * 60 * 1000,
-            gcTime: 60 * 60 * 1000,
-            refetchOnWindowFocus: false,
-            refetchOnMount: false,
-            refetchOnReconnect: false,
+            staleTime: 0,
+            gcTime: 10 * 60 * 1000,
+            refetchOnWindowFocus: true,
+            refetchOnMount: "always",
+            refetchOnReconnect: true,
             retry: 1,
           },
         },
@@ -47,13 +34,10 @@ export function Providers({ children }: ProvidersProps) {
 
   return (
     <SessionProvider>
-      <PersistQueryClientProvider
-        client={queryClient}
-        persistOptions={{ persister, maxAge: 24 * 60 * 60 * 1000 }}
-      >
+      <QueryClientProvider client={queryClient}>
         {children}
         <Toaster richColors position="top-right" />
-      </PersistQueryClientProvider>
+      </QueryClientProvider>
     </SessionProvider>
   );
 }

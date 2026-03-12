@@ -10,6 +10,7 @@ interface TableFooterProps {
   search?: string;
   onSearchChange?: (value: string) => void;
   showSearch?: boolean;
+  showTotal?: boolean;
   totalLabel: string;
   totalValue: string;
   page: number;
@@ -23,6 +24,7 @@ export function TableFooter({
   search = "",
   onSearchChange,
   showSearch = true,
+  showTotal = true,
   totalLabel,
   totalValue,
   page,
@@ -49,10 +51,12 @@ export function TableFooter({
           </Button>
         </div>
       ) : null}
-      <div className="text-sm">
-        <div className="font-semibold text-[#2f2a21]">{totalLabel}</div>
-        <div className="text-[#22c55e]">{totalValue}</div>
-      </div>
+      {showTotal ? (
+        <div className="text-sm">
+          <div className="font-semibold text-[#2f2a21]">{totalLabel}</div>
+          <div className="text-[#22c55e]">{totalValue}</div>
+        </div>
+      ) : null}
       <PaginationBar
         page={page}
         totalPages={totalPages}
