@@ -115,6 +115,8 @@ export default function AnalyticPage() {
   const paymentItems = paymentQuery.data?.data || [];
   const revenueRows = revenueAnalysisQuery.data?.data || [];
   const topSoldRows = topSoldQuery.data?.data || [];
+  const thisYearLabel = revenueRows[0]?.thisYear ?? referenceYear ?? new Date().getFullYear();
+  const lastYearLabel = revenueRows[0]?.lastYear ?? thisYearLabel - 1;
 
   const paymentStops = buildConicStops(
     paymentItems.map((item, index) => ({
@@ -275,11 +277,11 @@ export default function AnalyticPage() {
                 <div className="mt-4 flex flex-wrap items-center gap-5 text-xs text-[#7b6a48]">
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[#f4d58a]" />
-                    Last year
+                    {lastYearLabel}
                   </span>
                   <span className="flex items-center gap-2">
                     <span className="h-2 w-2 rounded-full bg-[#c18b1f]" />
-                    This year
+                    {thisYearLabel}
                   </span>
                 </div>
               </>
@@ -290,7 +292,9 @@ export default function AnalyticPage() {
         <Card className="flex flex-col">
           <CardHeader>
             <CardTitle>Revenue Comparison Table</CardTitle>
-            <p className="text-sm text-[#7b6a48]">Month by month: last year vs this year with differences.</p>
+            <p className="text-sm text-[#7b6a48]">
+              Month by month: {lastYearLabel} vs {thisYearLabel} with differences.
+            </p>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto pr-2">
             {revenueAnalysisQuery.isLoading ? (
@@ -305,8 +309,8 @@ export default function AnalyticPage() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Month</TableHead>
-                      <TableHead className="text-right">Last Year</TableHead>
-                      <TableHead className="text-right">This Year</TableHead>
+                      <TableHead className="text-right">{lastYearLabel}</TableHead>
+                      <TableHead className="text-right">{thisYearLabel}</TableHead>
                       <TableHead className="text-right">Difference</TableHead>
                     </TableRow>
                   </TableHeader>
