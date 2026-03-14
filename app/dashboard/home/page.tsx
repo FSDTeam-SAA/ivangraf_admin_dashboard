@@ -5,7 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Database, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 
-import { useActiveConnection } from "@/components/dashboard/use-active-connection";
+import { useDashboardActiveConnection } from "@/components/dashboard/active-connection-context";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
@@ -36,7 +36,20 @@ function DatabaseSkeleton() {
 
 export default function HomePage() {
   const queryClient = useQueryClient();
-  const { activeConnectionId, setActiveConnection, isConnectionReady } = useActiveConnection();
+  const activeConnectionState = useDashboardActiveConnection();
+  const {
+    activeConnectionId,
+    setActiveConnection,
+    isConnectionReady,
+    pendingConnectionId,
+    isUpdatingConnection,
+  } = activeConnectionState || {
+    activeConnectionId: null,
+    setActiveConnection: () => {},
+    isConnectionReady: false,
+    pendingConnectionId: null,
+    isUpdatingConnection: false,
+  };
 
   const connectionsQuery = useQuery({
     queryKey: ["connections"],
@@ -119,6 +132,7 @@ export default function HomePage() {
         <div className="grid gap-6 md:grid-cols-2">
           {(connectionsQuery.data?.data || []).map((database, index) => {
             const isActive = activeConnectionId === database.id;
+            const isPendingSelection = pendingConnectionId === database.id;
             const isMerged = database.kind === "merged" || Boolean(database.isMerged);
             const sourceCount = database.sourceConnectionCount || database.sourceConnectionIds?.length || 0;
 
@@ -167,13 +181,13 @@ export default function HomePage() {
 
                   <div className="grid gap-2 sm:grid-cols-2">
                     <Button
-                      variant={isActive ? "gold" : "soft"}
+                      variant={isActive || isPendingSelection ? "gold" : "soft"}
+                      disabled={isUpdatingConnection || (isActive && !isPendingSelection)}
                       onClick={() => {
                         setActiveConnection(database.id);
-                        toast.success(`${database.label || database.database} selected`);
                       }}
                     >
-                      {isActive ? "Selected" : "Select"}
+                      {isPendingSelection ? "Selecting..." : isActive ? "Selected" : "Select"}
                     </Button>
                     <Button
                       variant="outline"

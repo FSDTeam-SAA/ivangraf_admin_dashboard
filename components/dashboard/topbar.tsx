@@ -5,8 +5,9 @@ import { Menu } from "lucide-react";
 import { useSession } from "next-auth/react";
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { useDashboardActiveConnection } from "@/components/dashboard/active-connection-context";
 import { LogoBadge } from "@/components/dashboard/logo-badge";
-import { useActiveConnection } from "@/components/dashboard/use-active-connection";
+import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { cn } from "@/lib/utils";
 
 interface TopbarProps {
@@ -23,7 +24,9 @@ function getInitials(name?: string | null) {
 
 export function Topbar({ className, onMenuClick }: TopbarProps) {
   const { data: session } = useSession();
-  const { activeConnectionId } = useActiveConnection();
+  const { activeConnectionId } = useConnectionSelection();
+  const activeConnectionState = useDashboardActiveConnection();
+  const isSwitchingDatabase = Boolean(activeConnectionState?.isUpdatingConnection);
 
   return (
     <header
@@ -51,7 +54,11 @@ export function Topbar({ className, onMenuClick }: TopbarProps) {
         <div className="text-right leading-tight">
           <div className="text-sm font-semibold text-[#2f2a21]">{session?.user?.name || "User"}</div>
           <div className="text-xs text-[#7b6a48]">
-            {activeConnectionId ? "Database selected" : "Select a database"}
+            {isSwitchingDatabase
+              ? "Switching database..."
+              : activeConnectionId
+                ? "Database selected"
+                : "Select a database"}
           </div>
         </div>
         <Avatar className="h-9 w-9 sm:h-12 sm:w-12">

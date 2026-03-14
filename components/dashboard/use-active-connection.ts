@@ -16,9 +16,19 @@ import {
 } from "@/lib/connection-storage";
 import { getErrorMessage } from "@/lib/error";
 
+const ACTIVE_CONNECTION_POLL_INTERVAL_MS = 150;
+const ACTIVE_CONNECTION_MAX_POLL_ATTEMPTS = 20;
+
+function wait(delayMs: number) {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, delayMs);
+  });
+}
+
 export function useActiveConnection() {
   const [activeConnectionId, setLocalActiveConnectionId] = React.useState<string | null>(() => getActiveConnectionId());
   const [isConnectionReady, setIsConnectionReady] = React.useState(false);
+  const [pendingConnectionId, setPendingConnectionId] = React.useState<string | null>(null);
   const previousConnectionIdRef = React.useRef<string | null>(null);
   const autoPersistedConnectionIdRef = React.useRef<string | null>(null);
   const queryClient = useQueryClient();
@@ -26,6 +36,22 @@ export function useActiveConnection() {
   const shouldResetOnConnectionChange = React.useCallback((queryKey: readonly unknown[]) => {
     const rootKey = typeof queryKey[0] === "string" ? queryKey[0] : null;
     return rootKey !== "user" && rootKey !== "connections";
+  }, []);
+
+  const waitForServerActiveConnection = React.useCallback(async (expectedConnectionId: string | null) => {
+    const normalizedExpectedConnectionId = expectedConnectionId ? String(expectedConnectionId).trim() : null;
+
+    for (let attempt = 0; attempt < ACTIVE_CONNECTION_MAX_POLL_ATTEMPTS; attempt += 1) {
+      const activeConnectionResponse = await getActiveConnectionPreference();
+      const resolvedConnectionId = activeConnectionResponse.data?.activeConnectionId || null;
+      if (resolvedConnectionId === normalizedExpectedConnectionId) {
+        return activeConnectionResponse;
+      }
+
+      await wait(ACTIVE_CONNECTION_POLL_INTERVAL_MS);
+    }
+
+    throw new Error("Selected database is still syncing. Please try again.");
   }, []);
 
   const activeConnectionQuery = useQuery({
@@ -41,14 +67,34 @@ export function useActiveConnection() {
   });
 
   const setActiveConnectionMutation = useMutation({
-    mutationFn: (connectionId: string | null) => updateActiveConnectionPreference(connectionId),
+    mutationFn: async (connectionId: string | null) => {
+      const normalizedConnectionId = connectionId ? String(connectionId).trim() : null;
+      await updateActiveConnectionPreference(normalizedConnectionId);
+      return waitForServerActiveConnection(normalizedConnectionId);
+    },
+    onMutate: async (nextConnectionId) => {
+      setPendingConnectionId(nextConnectionId);
+      setIsConnectionReady(false);
+
+      await queryClient.cancelQueries({
+        predicate: (query) => shouldResetOnConnectionChange(query.queryKey),
+      });
+
+      queryClient.removeQueries({
+        predicate: (query) => shouldResetOnConnectionChange(query.queryKey),
+        type: "all",
+      });
+    },
     onError: (error) => {
+      setPendingConnectionId(null);
+      setIsConnectionReady(true);
       toast.error(getErrorMessage(error, "Failed to update selected database"));
     },
     onSuccess: (response) => {
       const nextConnectionId = response.data?.activeConnectionId || null;
       setActiveConnectionId(nextConnectionId);
       setLocalActiveConnectionId(nextConnectionId);
+      setPendingConnectionId(null);
       setIsConnectionReady(true);
       queryClient.setQueryData(["user", "active-connection"], response);
     },
@@ -65,45 +111,46 @@ export function useActiveConnection() {
   }, [connectionsQuery.error]);
 
   React.useEffect(() => {
-    if (activeConnectionQuery.isLoading || connectionsQuery.isLoading) return;
+    if (activeConnectionQuery.isLoading || connectionsQuery.isLoading) {
+      return;
+    }
+
+    if (setActiveConnectionMutation.isPending) {
+      return;
+    }
 
     const availableConnections = connectionsQuery.data?.data || [];
-    const localConnectionId = getActiveConnectionId();
-    const localExists = localConnectionId
-      ? availableConnections.some((connection) => connection.id === localConnectionId)
-      : false;
     const persistedConnectionId = activeConnectionQuery.data?.data?.activeConnectionId || null;
     const persistedExists = persistedConnectionId
       ? availableConnections.some((connection) => connection.id === persistedConnectionId)
       : false;
 
-    let nextConnectionId: string | null = null;
-    if (localExists) {
-      nextConnectionId = localConnectionId;
-    } else if (persistedExists) {
-      nextConnectionId = persistedConnectionId;
-    }
-
-    if (!nextConnectionId && availableConnections.length) {
-      nextConnectionId = availableConnections[0].id;
-    }
+    const nextConnectionId = persistedExists
+      ? persistedConnectionId
+      : availableConnections.length
+        ? availableConnections[0].id
+        : null;
 
     if (persistedConnectionId === nextConnectionId) {
       autoPersistedConnectionIdRef.current = null;
-    } else if (autoPersistedConnectionIdRef.current !== nextConnectionId) {
+      if (getActiveConnectionId() !== nextConnectionId) {
+        setActiveConnectionId(nextConnectionId);
+      }
+      setLocalActiveConnectionId(nextConnectionId);
+      setIsConnectionReady(true);
+      return;
+    }
+
+    if (autoPersistedConnectionIdRef.current !== nextConnectionId) {
       autoPersistedConnectionIdRef.current = nextConnectionId;
       setActiveConnectionMutation.mutate(nextConnectionId);
     }
-
-    setActiveConnectionId(nextConnectionId);
-    setLocalActiveConnectionId(nextConnectionId);
-    setIsConnectionReady(true);
   }, [
-    activeConnectionId,
     activeConnectionQuery.data?.data?.activeConnectionId,
     activeConnectionQuery.isLoading,
     connectionsQuery.data?.data,
     connectionsQuery.isLoading,
+    setActiveConnectionMutation.isPending,
     setActiveConnectionMutation,
   ]);
 
@@ -112,7 +159,6 @@ export function useActiveConnection() {
 
     const handleConnectionChanged = () => {
       setLocalActiveConnectionId(getActiveConnectionId());
-      setIsConnectionReady(true);
     };
 
     window.addEventListener(CONNECTION_CHANGED_EVENT, handleConnectionChanged);
@@ -124,14 +170,13 @@ export function useActiveConnection() {
   const setActiveConnection = React.useCallback((connectionId: string) => {
     const normalizedConnectionId = String(connectionId || "").trim();
     if (!normalizedConnectionId) return;
-    if (normalizedConnectionId === activeConnectionId) return;
+    if (setActiveConnectionMutation.isPending) return;
+    if (normalizedConnectionId === activeConnectionId || normalizedConnectionId === pendingConnectionId) return;
 
     autoPersistedConnectionIdRef.current = normalizedConnectionId;
-    setActiveConnectionId(normalizedConnectionId);
-    setLocalActiveConnectionId(normalizedConnectionId);
-    setIsConnectionReady(true);
+    setIsConnectionReady(false);
     setActiveConnectionMutation.mutate(normalizedConnectionId);
-  }, [activeConnectionId, setActiveConnectionMutation]);
+  }, [activeConnectionId, pendingConnectionId, setActiveConnectionMutation]);
 
   React.useEffect(() => {
     if (!isConnectionReady || !activeConnectionId) {
@@ -163,6 +208,7 @@ export function useActiveConnection() {
     activeConnectionId,
     setActiveConnection,
     isConnectionReady,
+    pendingConnectionId,
     isUpdatingConnection: setActiveConnectionMutation.isPending,
   };
 }

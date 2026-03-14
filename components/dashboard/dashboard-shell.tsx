@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { ActiveConnectionProvider } from "@/components/dashboard/active-connection-context";
+import { useDashboardActiveConnection } from "@/components/dashboard/active-connection-context";
 import { Sidebar } from "@/components/dashboard/sidebar";
 import { Topbar } from "@/components/dashboard/topbar";
 import { cn } from "@/lib/utils";
@@ -10,7 +12,9 @@ interface DashboardShellProps {
   children: React.ReactNode;
 }
 
-export function DashboardShell({ children }: DashboardShellProps) {
+function DashboardShellContent({ children }: DashboardShellProps) {
+  const activeConnectionState = useDashboardActiveConnection();
+  const isSwitchingDatabase = Boolean(activeConnectionState?.isUpdatingConnection);
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
 
   React.useEffect(() => {
@@ -34,7 +38,7 @@ export function DashboardShell({ children }: DashboardShellProps) {
   }, [sidebarOpen]);
 
   return (
-    <div className="flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[var(--background)]">
+    <div className="relative flex h-[100dvh] min-h-0 flex-col overflow-hidden bg-[var(--background)]">
       <Topbar className="shrink-0" onMenuClick={() => setSidebarOpen(true)} />
 
       <div className="flex min-h-0 flex-1 overflow-hidden">
@@ -67,6 +71,23 @@ export function DashboardShell({ children }: DashboardShellProps) {
           onNavigate={() => setSidebarOpen(false)}
         />
       </div>
+
+      {isSwitchingDatabase ? (
+        <div className="absolute inset-0 z-50 flex items-center justify-center bg-[#fdfaf5]/70 backdrop-blur-[1px]">
+          <div className="flex items-center gap-3 rounded-lg border border-[#e4d2ad] bg-[#fffaf0] px-4 py-3 text-sm font-medium text-[#5f513a] shadow">
+            <span className="h-4 w-4 animate-spin rounded-full border-2 border-[#d8b06b] border-t-transparent" />
+            Switching database...
+          </div>
+        </div>
+      ) : null}
     </div>
+  );
+}
+
+export function DashboardShell({ children }: DashboardShellProps) {
+  return (
+    <ActiveConnectionProvider>
+      <DashboardShellContent>{children}</DashboardShellContent>
+    </ActiveConnectionProvider>
   );
 }
