@@ -13,7 +13,7 @@ export default function OtpPage() {
           <span className="font-[var(--font-display)]">Verify OTP</span>
         </h1>
         <p className="text-sm text-[#7b6a48]">
-          Enter the 4-digit code sent to your email.
+          Enter the 4-digit code sent to your account.
         </p>
       </div>
       <div className="flex justify-center gap-4">

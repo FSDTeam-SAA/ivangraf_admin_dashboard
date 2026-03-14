@@ -10,6 +10,7 @@ import { ItemsDetailsDialog } from "@/components/dashboard/items-details-dialog"
 import { PageHeader } from "@/components/dashboard/page-header";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
+import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { usePagination } from "@/components/dashboard/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -24,17 +25,19 @@ export default function OpensTablesPage() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [detailExportOpen, setDetailExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<OpenTableItem | null>(null);
+  const { activeConnectionId, isConnectionReady } = useConnectionSelection();
 
   const openTablesQuery = useQuery({
-    queryKey: ["dashboard", "open-tables"],
+    queryKey: ["dashboard", "open-tables", activeConnectionId],
     queryFn: () => getOpenTables(),
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const selectedTableId = selectedItem?.status === "Occupied" ? selectedItem.tableId : undefined;
   const openTableItemsQuery = useQuery({
-    queryKey: ["dashboard", "open-table-items", selectedTableId],
+    queryKey: ["dashboard", "open-table-items", activeConnectionId, selectedTableId],
     queryFn: () => getOpenTableItems(String(selectedTableId)),
-    enabled: Boolean(selectedTableId),
+    enabled: isConnectionReady && Boolean(activeConnectionId) && Boolean(selectedTableId),
   });
 
   React.useEffect(() => {
@@ -56,6 +59,11 @@ export default function OpensTablesPage() {
 
   const detailData = openTableItemsQuery.data?.data;
 
+  React.useEffect(() => {
+    setSelectedItem(null);
+    setDetailExportOpen(false);
+  }, [activeConnectionId]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -70,7 +78,7 @@ export default function OpensTablesPage() {
       />
 
       <Card className="p-4">
-        {openTablesQuery.isLoading ? (
+        {openTablesQuery.isLoading || !isConnectionReady ? (
           <TableSkeleton headers={["Table", "Sector", "Waiter", "Status"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>

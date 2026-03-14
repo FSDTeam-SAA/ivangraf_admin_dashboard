@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
+import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -28,6 +29,7 @@ export default function StockOfGoodsPage() {
   const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<StockGoodItem | null>(null);
+  const { activeConnectionId, isConnectionReady } = useConnectionSelection();
   const deferredSearch = React.useDeferredValue(search);
 
   const queryParams = React.useMemo(
@@ -45,9 +47,9 @@ export default function StockOfGoodsPage() {
   }, [deferredSearch, dateFilter]);
 
   const stockGoodsQuery = useQuery({
-    queryKey: ["lists", "stock-goods", queryParams],
+    queryKey: ["lists", "stock-goods", activeConnectionId, queryParams],
     queryFn: () => getStockGoods(queryParams),
-    placeholderData: (previousData) => previousData,
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   React.useEffect(() => {
@@ -83,7 +85,7 @@ export default function StockOfGoodsPage() {
       />
 
       <Card className="p-4">
-        {stockGoodsQuery.isLoading ? (
+        {stockGoodsQuery.isLoading || !isConnectionReady ? (
           <TableSkeleton headers={["Item", "In Stock", "Unit", "Status"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>

@@ -226,7 +226,7 @@ export interface CancelOrderItem {
 }
 
 export interface LoginPayload {
-  email: string;
+  username: string;
   password: string;
 }
 
@@ -235,8 +235,9 @@ export interface LoginResponse {
   user: {
     id: string;
     name: string;
-    email: string;
+    username: string;
     role: string;
+    isActive?: boolean;
     favoriteSidebarItems?: string[];
   };
 }

@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
+import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { usePagination } from "@/components/dashboard/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,12 +29,14 @@ export default function SalesOfItemsPage() {
   const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<SalesItem | null>(null);
+  const { activeConnectionId, isConnectionReady } = useConnectionSelection();
 
   const queryParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
 
   const salesQuery = useQuery({
-    queryKey: ["dashboard", "sales-items", queryParams],
+    queryKey: ["dashboard", "sales-items", activeConnectionId, queryParams],
     queryFn: () => getSalesItems(queryParams),
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   React.useEffect(() => {
@@ -77,7 +80,7 @@ export default function SalesOfItemsPage() {
       />
 
       <Card className="p-4">
-        {salesQuery.isLoading ? (
+        {salesQuery.isLoading || !isConnectionReady ? (
           <TableSkeleton headers={["Name of Items", "Quantity", "Total", "% of all Items"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>

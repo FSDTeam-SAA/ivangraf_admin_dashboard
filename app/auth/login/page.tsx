@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, User } from "lucide-react";
 import { signIn } from "next-auth/react";
 import { toast } from "sonner";
 
@@ -15,7 +15,7 @@ export default function LoginPage() {
   const searchParams = useSearchParams();
   const callbackUrl = searchParams.get("callbackUrl") || "/dashboard/home";
 
-  const [email, setEmail] = React.useState("");
+  const [username, setUsername] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [showPassword, setShowPassword] = React.useState(false);
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -23,15 +23,15 @@ export default function LoginPage() {
   async function onSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    if (!email.trim() || !password) {
-      toast.error("Email and password are required");
+    if (!username.trim() || !password) {
+      toast.error("Username and password are required");
       return;
     }
 
     setIsSubmitting(true);
 
     const result = await signIn("credentials", {
-      email: email.trim(),
+      username: username.trim(),
       password,
       redirect: false,
     });
@@ -54,13 +54,13 @@ export default function LoginPage() {
         <div className="space-y-2">
           <label className="text-[18px] font-semibold text-[#4d4332] tracking-tight">User Name</label>
           <div className="relative">
-            <Mail className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9ca3af]" />
+            <User className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-[#9ca3af]" />
             <Input
               className="h-12 border-[#9ca3af] bg-transparent pl-12 text-[15px] placeholder:text-[#9ca3af]"
               placeholder="Enter your User Name"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              autoComplete="email"
+              value={username}
+              onChange={(event) => setUsername(event.target.value)}
+              autoComplete="username"
             />
           </div>
         </div>

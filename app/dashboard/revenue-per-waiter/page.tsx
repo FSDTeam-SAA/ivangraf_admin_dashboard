@@ -11,6 +11,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
+import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { usePagination } from "@/components/dashboard/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -28,12 +29,14 @@ export default function RevenuePerWaiterPage() {
   const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<RevenueWaiterItem | null>(null);
+  const { activeConnectionId, isConnectionReady } = useConnectionSelection();
 
   const queryParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
 
   const waiterQuery = useQuery({
-    queryKey: ["dashboard", "revenue-waiter", queryParams],
+    queryKey: ["dashboard", "revenue-waiter", activeConnectionId, queryParams],
     queryFn: () => getRevenuePerWaiter(queryParams),
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   React.useEffect(() => {
@@ -77,7 +80,7 @@ export default function RevenuePerWaiterPage() {
       />
 
       <Card className="p-4">
-        {waiterQuery.isLoading ? (
+        {waiterQuery.isLoading || !isConnectionReady ? (
           <TableSkeleton headers={["Name of Waiter", "Total", "% of all Waiters"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>

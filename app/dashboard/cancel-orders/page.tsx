@@ -11,6 +11,7 @@ import { ItemsDetailsDialog } from "@/components/dashboard/items-details-dialog"
 import { PageHeader } from "@/components/dashboard/page-header";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
+import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -29,6 +30,7 @@ export default function CancelOrdersPage() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [detailExportOpen, setDetailExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<CancelOrderItem | null>(null);
+  const { activeConnectionId, isConnectionReady } = useConnectionSelection();
   const deferredSearch = React.useDeferredValue(search);
 
   const queryParams = React.useMemo(
@@ -46,16 +48,16 @@ export default function CancelOrdersPage() {
   }, [deferredSearch, dateFilter]);
 
   const cancelOrdersQuery = useQuery({
-    queryKey: ["lists", "cancel-orders", queryParams],
+    queryKey: ["lists", "cancel-orders", activeConnectionId, queryParams],
     queryFn: () => getCancelOrders(queryParams),
-    placeholderData: (previousData) => previousData,
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const selectedInvoiceId = selectedItem?.id;
   const cancelOrderItemsQuery = useQuery({
-    queryKey: ["lists", "cancel-order-items", selectedInvoiceId],
+    queryKey: ["lists", "cancel-order-items", activeConnectionId, selectedInvoiceId],
     queryFn: () => getCancelOrderItems(String(selectedInvoiceId)),
-    enabled: Boolean(selectedInvoiceId),
+    enabled: isConnectionReady && Boolean(activeConnectionId) && Boolean(selectedInvoiceId),
   });
 
   React.useEffect(() => {
@@ -80,6 +82,11 @@ export default function CancelOrdersPage() {
     }
   }, [page, totalPages]);
 
+  React.useEffect(() => {
+    setSelectedItem(null);
+    setDetailExportOpen(false);
+  }, [activeConnectionId]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -97,7 +104,7 @@ export default function CancelOrdersPage() {
       />
 
       <Card className="p-4">
-        {cancelOrdersQuery.isLoading ? (
+        {cancelOrdersQuery.isLoading || !isConnectionReady ? (
           <TableSkeleton headers={["Order", "Time", "Waiter", "Amount"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>

@@ -10,6 +10,7 @@ import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PaginationBar } from "@/components/dashboard/pagination-bar";
 import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
+import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { usePagination } from "@/components/dashboard/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -85,24 +86,28 @@ export default function AnalyticPage() {
   const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState<RevenueAnalysisItem | null>(null);
+  const { activeConnectionId, isConnectionReady } = useConnectionSelection();
 
   const queryParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
   const referenceDate = queryParams.to || queryParams.from || undefined;
   const referenceYear = referenceDate ? new Date(referenceDate).getFullYear() : undefined;
 
   const paymentQuery = useQuery({
-    queryKey: ["dashboard", "type-of-payment", queryParams],
+    queryKey: ["dashboard", "type-of-payment", activeConnectionId, queryParams],
     queryFn: () => getTypeOfPayment(queryParams),
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const revenueAnalysisQuery = useQuery({
-    queryKey: ["dashboard", "revenue-analysis", referenceYear],
+    queryKey: ["dashboard", "revenue-analysis", activeConnectionId, referenceYear],
     queryFn: () => getRevenueAnalysis(referenceYear ? { year: referenceYear } : undefined),
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const topSoldQuery = useQuery({
-    queryKey: ["dashboard", "top-sold-items", queryParams],
+    queryKey: ["dashboard", "top-sold-items", activeConnectionId, queryParams],
     queryFn: () => getTopSoldItems({ ...queryParams, limit: 10 }),
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   React.useEffect(() => {
@@ -166,7 +171,7 @@ export default function AnalyticPage() {
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {paymentQuery.isLoading ? (
+        {!isConnectionReady || paymentQuery.isLoading ? (
           <AnalyticCardSkeleton />
         ) : (
           <Card>
@@ -203,7 +208,7 @@ export default function AnalyticPage() {
           </Card>
         )}
 
-        {topSoldQuery.isLoading ? (
+        {!isConnectionReady || topSoldQuery.isLoading ? (
           <AnalyticCardSkeleton />
         ) : (
           <Card>
@@ -251,7 +256,7 @@ export default function AnalyticPage() {
             <p className="text-sm text-[#7b6a48]">Bottom-origin monthly bar chart for year comparison.</p>
           </CardHeader>
           <CardContent>
-            {revenueAnalysisQuery.isLoading ? (
+            {!isConnectionReady || revenueAnalysisQuery.isLoading ? (
               <Skeleton className="h-[260px] w-full" />
             ) : (
               <>
@@ -297,7 +302,7 @@ export default function AnalyticPage() {
             </p>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto pr-2">
-            {revenueAnalysisQuery.isLoading ? (
+            {!isConnectionReady || revenueAnalysisQuery.isLoading ? (
               <div className="space-y-3">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <Skeleton key={index} className="h-10 w-full" />

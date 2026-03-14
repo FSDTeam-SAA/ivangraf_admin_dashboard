@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Mail } from "lucide-react";
+import { User } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -14,14 +14,14 @@ export default function ForgotPasswordPage() {
           <span className="font-[var(--font-display)]">Forgot Password</span>
         </h1>
         <p className="text-sm text-[#7b6a48]">
-          Enter your email and we will send you a one-time password.
+          Enter your username and we will send you a one-time password.
         </p>
       </div>
       <div className="space-y-4">
-        <label className="block text-sm font-semibold text-[#4d4332]">Email</label>
+        <label className="block text-sm font-semibold text-[#4d4332]">Username</label>
         <div className="relative">
-          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a3916b]" />
-          <Input className="pl-10" placeholder="Enter your Email" />
+          <User className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-[#a3916b]" />
+          <Input className="pl-10" placeholder="Enter your Username" />
         </div>
       </div>
       <Button variant="gold" size="lg" className="w-full">

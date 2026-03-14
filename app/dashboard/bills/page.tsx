@@ -10,6 +10,7 @@ import { ItemsDetailsDialog } from "@/components/dashboard/items-details-dialog"
 import { PageHeader } from "@/components/dashboard/page-header";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
+import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -26,6 +27,7 @@ export default function BillsPage() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [detailExportOpen, setDetailExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<BillItem | null>(null);
+  const { activeConnectionId, isConnectionReady } = useConnectionSelection();
   const deferredSearch = React.useDeferredValue(search);
 
   const queryParams = React.useMemo(
@@ -42,16 +44,16 @@ export default function BillsPage() {
   }, [deferredSearch]);
 
   const billsQuery = useQuery({
-    queryKey: ["lists", "bills", queryParams],
+    queryKey: ["lists", "bills", activeConnectionId, queryParams],
     queryFn: () => getBills(queryParams),
-    placeholderData: (previousData) => previousData,
+    enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const selectedInvoiceId = selectedItem?.id;
   const billItemsQuery = useQuery({
-    queryKey: ["lists", "bill-items", selectedInvoiceId],
+    queryKey: ["lists", "bill-items", activeConnectionId, selectedInvoiceId],
     queryFn: () => getBillItems(String(selectedInvoiceId)),
-    enabled: Boolean(selectedInvoiceId),
+    enabled: isConnectionReady && Boolean(activeConnectionId) && Boolean(selectedInvoiceId),
   });
 
   React.useEffect(() => {
@@ -76,6 +78,11 @@ export default function BillsPage() {
     }
   }, [page, totalPages]);
 
+  React.useEffect(() => {
+    setSelectedItem(null);
+    setDetailExportOpen(false);
+  }, [activeConnectionId]);
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -90,7 +97,7 @@ export default function BillsPage() {
       />
 
       <Card className="p-4">
-        {billsQuery.isLoading ? (
+        {billsQuery.isLoading || !isConnectionReady ? (
           <TableSkeleton headers={["Bill", "Time", "Waiter", "Payment", "Total"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>

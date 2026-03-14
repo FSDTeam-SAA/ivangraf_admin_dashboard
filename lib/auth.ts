@@ -12,8 +12,9 @@ interface LoginApiResponse {
       id?: string;
       _id?: string;
       name?: string;
-      email?: string;
+      username?: string;
       role?: string;
+      isActive?: boolean;
     };
   };
 }
@@ -29,14 +30,14 @@ export const authOptions: NextAuthOptions = {
     CredentialsProvider({
       name: "Credentials",
       credentials: {
-        email: { label: "Email", type: "text" },
+        username: { label: "Username", type: "text" },
         password: { label: "Password", type: "password" },
       },
       async authorize(credentials) {
-        const email = credentials?.email?.trim();
+        const username = credentials?.username?.trim();
         const password = credentials?.password;
 
-        if (!email || !password) {
+        if (!username || !password) {
           return null;
         }
 
@@ -45,7 +46,7 @@ export const authOptions: NextAuthOptions = {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({ username, password }),
         });
         console.log(response);
 
@@ -57,10 +58,14 @@ export const authOptions: NextAuthOptions = {
           return null;
         }
 
+        if (payload.data.user.isActive === false) {
+          return null;
+        }
+
         return {
           id: payload.data.user.id || payload.data.user._id || "",
-          name: payload.data.user.name || payload.data.user.email || "User",
-          email: payload.data.user.email || "",
+          name: payload.data.user.name || payload.data.user.username || "User",
+          username: payload.data.user.username || "",
           role: payload.data.user.role || "user",
           accessToken: payload.data.token,
         };
@@ -73,6 +78,7 @@ export const authOptions: NextAuthOptions = {
         token.accessToken = user.accessToken;
         token.userId = user.id;
         token.role = user.role;
+        token.username = user.username;
       }
       return token;
     },
@@ -81,6 +87,7 @@ export const authOptions: NextAuthOptions = {
       if (session.user) {
         session.user.id = token.userId;
         session.user.role = token.role;
+        session.user.username = token.username;
       }
       return session;
     },

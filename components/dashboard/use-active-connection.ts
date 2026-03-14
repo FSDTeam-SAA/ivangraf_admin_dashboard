@@ -9,7 +9,11 @@ import {
   getMyConnections,
   updateActiveConnectionPreference,
 } from "@/lib/api";
-import { getActiveConnectionId, setActiveConnectionId } from "@/lib/connection-storage";
+import {
+  CONNECTION_CHANGED_EVENT,
+  getActiveConnectionId,
+  setActiveConnectionId,
+} from "@/lib/connection-storage";
 import { getErrorMessage } from "@/lib/error";
 
 export function useActiveConnection() {
@@ -64,12 +68,22 @@ export function useActiveConnection() {
     if (activeConnectionQuery.isLoading || connectionsQuery.isLoading) return;
 
     const availableConnections = connectionsQuery.data?.data || [];
+    const localConnectionId = getActiveConnectionId();
+    const localExists = localConnectionId
+      ? availableConnections.some((connection) => connection.id === localConnectionId)
+      : false;
     const persistedConnectionId = activeConnectionQuery.data?.data?.activeConnectionId || null;
     const persistedExists = persistedConnectionId
       ? availableConnections.some((connection) => connection.id === persistedConnectionId)
       : false;
 
-    let nextConnectionId: string | null = persistedExists ? persistedConnectionId : null;
+    let nextConnectionId: string | null = null;
+    if (localExists) {
+      nextConnectionId = localConnectionId;
+    } else if (persistedExists) {
+      nextConnectionId = persistedConnectionId;
+    }
+
     if (!nextConnectionId && availableConnections.length) {
       nextConnectionId = availableConnections[0].id;
     }
@@ -85,12 +99,27 @@ export function useActiveConnection() {
     setLocalActiveConnectionId(nextConnectionId);
     setIsConnectionReady(true);
   }, [
+    activeConnectionId,
     activeConnectionQuery.data?.data?.activeConnectionId,
     activeConnectionQuery.isLoading,
     connectionsQuery.data?.data,
     connectionsQuery.isLoading,
     setActiveConnectionMutation,
   ]);
+
+  React.useEffect(() => {
+    if (typeof window === "undefined") return undefined;
+
+    const handleConnectionChanged = () => {
+      setLocalActiveConnectionId(getActiveConnectionId());
+      setIsConnectionReady(true);
+    };
+
+    window.addEventListener(CONNECTION_CHANGED_EVENT, handleConnectionChanged);
+    return () => {
+      window.removeEventListener(CONNECTION_CHANGED_EVENT, handleConnectionChanged);
+    };
+  }, []);
 
   const setActiveConnection = React.useCallback((connectionId: string) => {
     const normalizedConnectionId = String(connectionId || "").trim();
