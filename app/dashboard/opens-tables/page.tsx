@@ -29,14 +29,14 @@ export default function OpensTablesPage() {
 
   const openTablesQuery = useQuery({
     queryKey: ["dashboard", "open-tables", activeConnectionId],
-    queryFn: () => getOpenTables(),
+    queryFn: () => getOpenTables(undefined, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const selectedTableId = selectedItem?.status === "Occupied" ? selectedItem.tableId : undefined;
   const openTableItemsQuery = useQuery({
     queryKey: ["dashboard", "open-table-items", activeConnectionId, selectedTableId],
-    queryFn: () => getOpenTableItems(String(selectedTableId)),
+    queryFn: () => getOpenTableItems(String(selectedTableId), activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId) && Boolean(selectedTableId),
   });
 
@@ -123,6 +123,7 @@ export default function OpensTablesPage() {
         title="Export"
         subtitle="Open tables"
         reportPath="/api/analytics/open-tables/export"
+        params={{ connectionId: activeConnectionId || undefined }}
       />
 
       <ItemsDetailsDialog
@@ -172,6 +173,7 @@ export default function OpensTablesPage() {
           title="Export"
           subtitle="Open table item details"
           reportPath={`/api/open-tables/${encodeURIComponent(selectedTableId)}/items/export`}
+          params={{ connectionId: activeConnectionId || undefined }}
         />
       ) : null}
     </div>

@@ -35,7 +35,7 @@ export default function RevenuePerWaiterPage() {
 
   const waiterQuery = useQuery({
     queryKey: ["dashboard", "revenue-waiter", activeConnectionId, queryParams],
-    queryFn: () => getRevenuePerWaiter(queryParams),
+    queryFn: () => getRevenuePerWaiter(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
@@ -135,6 +135,7 @@ export default function RevenuePerWaiterPage() {
         subtitle="Revenue per waiter"
         reportPath="/api/analytics/revenue-waiter/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           search: search || undefined,
           ...queryParams,
         }}

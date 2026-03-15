@@ -57,7 +57,7 @@ export default function HomePage() {
   });
 
   const syncMutation = useMutation({
-    mutationFn: runSyncNow,
+    mutationFn: (connectionId: string) => runSyncNow(connectionId),
     onSuccess: (result) => {
       const synced = result.data?.synced || {};
       const totalRows = Object.values(synced).reduce((acc, value) => acc + Number(value || 0), 0);
@@ -192,7 +192,7 @@ export default function HomePage() {
                     <Button
                       variant="outline"
                       disabled={syncMutation.isPending || !isActive || isMerged}
-                      onClick={() => syncMutation.mutate()}
+                      onClick={() => syncMutation.mutate(database.id)}
                     >
                       {isMerged
                         ? "Sync sources"

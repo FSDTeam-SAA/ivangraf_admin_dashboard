@@ -35,7 +35,7 @@ export default function SalesOfItemsPage() {
 
   const salesQuery = useQuery({
     queryKey: ["dashboard", "sales-items", activeConnectionId, queryParams],
-    queryFn: () => getSalesItems(queryParams),
+    queryFn: () => getSalesItems(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
@@ -144,6 +144,7 @@ export default function SalesOfItemsPage() {
         subtitle="Sales of items"
         reportPath="/api/analytics/sales-items/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           search: search || undefined,
           ...queryParams,
         }}

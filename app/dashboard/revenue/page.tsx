@@ -35,7 +35,7 @@ export default function RevenuePage() {
 
   const revenueQuery = useQuery({
     queryKey: ["dashboard", "revenue-by-payment", activeConnectionId, queryParams],
-    queryFn: () => getRevenueByPayment(queryParams),
+    queryFn: () => getRevenueByPayment(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
@@ -135,6 +135,7 @@ export default function RevenuePage() {
         subtitle="Revenue"
         reportPath="/api/analytics/revenue-by-payment/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           search: search || undefined,
           ...queryParams,
         }}

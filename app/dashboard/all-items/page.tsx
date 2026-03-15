@@ -37,7 +37,7 @@ export default function AllItemsPage() {
 
   const itemsQuery = useQuery({
     queryKey: ["lists", "all-items", activeConnectionId, queryParams],
-    queryFn: () => getAllItems(queryParams),
+    queryFn: () => getAllItems(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
@@ -113,6 +113,7 @@ export default function AllItemsPage() {
         title="Export"
         subtitle="List of all items"
         reportPath="/api/lists/items/export"
+        params={{ connectionId: activeConnectionId || undefined }}
       />
 
       <RowDetailsDialog

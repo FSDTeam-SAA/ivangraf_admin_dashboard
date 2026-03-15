@@ -48,7 +48,7 @@ export default function StockOfGoodsPage() {
 
   const stockGoodsQuery = useQuery({
     queryKey: ["lists", "stock-goods", activeConnectionId, queryParams],
-    queryFn: () => getStockGoods(queryParams),
+    queryFn: () => getStockGoods(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
@@ -143,6 +143,7 @@ export default function StockOfGoodsPage() {
         subtitle="Stock of goods"
         reportPath="/api/lists/stock-goods/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           search: deferredSearch || undefined,
           ...buildDateFilterParams(dateFilter),
         }}

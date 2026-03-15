@@ -49,14 +49,14 @@ export default function CancelOrdersPage() {
 
   const cancelOrdersQuery = useQuery({
     queryKey: ["lists", "cancel-orders", activeConnectionId, queryParams],
-    queryFn: () => getCancelOrders(queryParams),
+    queryFn: () => getCancelOrders(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const selectedInvoiceId = selectedItem?.id;
   const cancelOrderItemsQuery = useQuery({
     queryKey: ["lists", "cancel-order-items", activeConnectionId, selectedInvoiceId],
-    queryFn: () => getCancelOrderItems(String(selectedInvoiceId)),
+    queryFn: () => getCancelOrderItems(String(selectedInvoiceId), activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId) && Boolean(selectedInvoiceId),
   });
 
@@ -149,6 +149,7 @@ export default function CancelOrdersPage() {
         subtitle="Cancel orders"
         reportPath="/api/lists/cancel-orders/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           search: deferredSearch || undefined,
           ...buildDateFilterParams(dateFilter),
         }}
@@ -200,6 +201,7 @@ export default function CancelOrdersPage() {
           title="Export"
           subtitle="Cancel order item details"
           reportPath={`/api/cancel-orders/${encodeURIComponent(selectedInvoiceId)}/items/export`}
+          params={{ connectionId: activeConnectionId || undefined }}
         />
       ) : null}
     </div>

@@ -94,19 +94,20 @@ export default function AnalyticPage() {
 
   const paymentQuery = useQuery({
     queryKey: ["dashboard", "type-of-payment", activeConnectionId, queryParams],
-    queryFn: () => getTypeOfPayment(queryParams),
+    queryFn: () => getTypeOfPayment(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const revenueAnalysisQuery = useQuery({
     queryKey: ["dashboard", "revenue-analysis", activeConnectionId, referenceYear],
-    queryFn: () => getRevenueAnalysis(referenceYear ? { year: referenceYear } : undefined),
+    queryFn: () =>
+      getRevenueAnalysis(referenceYear ? { year: referenceYear } : undefined, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const topSoldQuery = useQuery({
     queryKey: ["dashboard", "top-sold-items", activeConnectionId, queryParams],
-    queryFn: () => getTopSoldItems({ ...queryParams, limit: 10 }),
+    queryFn: () => getTopSoldItems({ ...queryParams, limit: 10 }, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
@@ -361,6 +362,7 @@ export default function AnalyticPage() {
         subtitle="Analytic dashboard"
         reportPath="/api/analytics/analytic-dashboard/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           ...queryParams,
           limit: 10,
           year: referenceYear,

@@ -34,7 +34,7 @@ export default function RevenuePerTaxGroupPage() {
 
   const taxGroupQuery = useQuery({
     queryKey: ["dashboard", "revenue-tax-group", activeConnectionId, queryParams],
-    queryFn: () => getRevenueByTaxGroup(queryParams),
+    queryFn: () => getRevenueByTaxGroup(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
@@ -122,6 +122,7 @@ export default function RevenuePerTaxGroupPage() {
         subtitle="Revenue per tax group"
         reportPath="/api/analytics/revenue-by-tax-group/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           search: search || undefined,
           ...queryParams,
         }}

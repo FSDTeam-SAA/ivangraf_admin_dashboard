@@ -48,7 +48,7 @@ export default function ListOfSpendGoodsPage() {
 
   const spendGoodsQuery = useQuery({
     queryKey: ["lists", "spend-goods", activeConnectionId, queryParams],
-    queryFn: () => getSpendGoods(queryParams),
+    queryFn: () => getSpendGoods(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
@@ -129,6 +129,7 @@ export default function ListOfSpendGoodsPage() {
         subtitle="List of spend goods"
         reportPath="/api/lists/spend-goods/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           search: deferredSearch || undefined,
           ...buildDateFilterParams(dateFilter),
         }}

@@ -45,14 +45,14 @@ export default function BillsPage() {
 
   const billsQuery = useQuery({
     queryKey: ["lists", "bills", activeConnectionId, queryParams],
-    queryFn: () => getBills(queryParams),
+    queryFn: () => getBills(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
   });
 
   const selectedInvoiceId = selectedItem?.id;
   const billItemsQuery = useQuery({
     queryKey: ["lists", "bill-items", activeConnectionId, selectedInvoiceId],
-    queryFn: () => getBillItems(String(selectedInvoiceId)),
+    queryFn: () => getBillItems(String(selectedInvoiceId), activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId) && Boolean(selectedInvoiceId),
   });
 
@@ -144,6 +144,7 @@ export default function BillsPage() {
         subtitle="Bills"
         reportPath="/api/lists/bills/export"
         params={{
+          connectionId: activeConnectionId || undefined,
           search: deferredSearch || undefined,
         }}
       />
@@ -192,6 +193,7 @@ export default function BillsPage() {
           title="Export"
           subtitle="Bill item details"
           reportPath={`/api/bills/${encodeURIComponent(selectedInvoiceId)}/items/export`}
+          params={{ connectionId: activeConnectionId || undefined }}
         />
       ) : null}
     </div>

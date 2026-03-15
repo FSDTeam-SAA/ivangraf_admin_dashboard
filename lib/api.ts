@@ -281,6 +281,15 @@ async function unwrap<T, M = Record<string, unknown>>(
   return response.data;
 }
 
+function withConnectionId<TParams extends object>(
+  params: TParams | undefined,
+  connectionId?: string | null
+) {
+  const normalizedConnectionId = String(connectionId || "").trim();
+  if (!normalizedConnectionId) return params;
+  return { ...(params || {}), connectionId: normalizedConnectionId };
+}
+
 export async function postLogin(payload: LoginPayload) {
   return unwrap<LoginResponse>(publicApiClient.post("/api/auth/login", payload));
 }
@@ -307,9 +316,10 @@ export async function updateActiveConnectionPreference(activeConnectionId: strin
   );
 }
 
-export async function runSyncNow() {
+export async function runSyncNow(connectionId?: string | null) {
+  const normalizedConnectionId = String(connectionId || "").trim();
   return unwrap<{ synced: Record<string, number>; connection: Connection }>(
-    apiClient.post("/api/sync/run")
+    apiClient.post("/api/sync/run", normalizedConnectionId ? { connectionId: normalizedConnectionId } : {})
   );
 }
 
@@ -321,75 +331,148 @@ export async function getSyncStatus() {
   }>(apiClient.get("/api/sync/status"));
 }
 
-export async function getTypeOfPayment(params?: PeriodParams) {
-  return unwrap<PaymentBreakdownItem[], ReportMeta>(apiClient.get("/api/analytics/type-of-payment", { params }));
-}
-
-export async function getTimePeriods(params?: { referenceDate?: string }) {
-  return unwrap<TimePeriodItem[], ReportMeta>(apiClient.get("/api/analytics/time-periods", { params }));
-}
-
-export async function getRevenueAnalysis(params?: { year?: number }) {
-  return unwrap<RevenueAnalysisItem[], ReportMeta>(apiClient.get("/api/analytics/revenue-analysis", { params }));
-}
-
-export async function getTopSoldItems(params?: PeriodParams & { limit?: number }) {
-  return unwrap<TopSoldItem[], ReportMeta>(apiClient.get("/api/analytics/top-sold-items", { params }));
-}
-
-export async function getSalesItems(params?: PeriodParams) {
-  return unwrap<SalesItem[], ReportMeta>(apiClient.get("/api/analytics/sales-items", { params }));
-}
-
-export async function getRevenueByPayment(params?: PeriodParams) {
-  return unwrap<RevenueByPaymentItem[], ReportMeta>(apiClient.get("/api/analytics/revenue-by-payment", { params }));
-}
-
-export async function getRevenueByTaxGroup(params?: PeriodParams) {
-  return unwrap<RevenueTaxGroupItem[], ReportMeta>(apiClient.get("/api/analytics/revenue-by-tax-group", { params }));
-}
-
-export async function getRevenuePerWaiter(params?: PeriodParams) {
-  return unwrap<RevenueWaiterItem[], ReportMeta>(apiClient.get("/api/analytics/revenue-waiter", { params }));
-}
-
-export async function getOpenTables(params?: PeriodParams) {
-  return unwrap<OpenTableItem[], ReportMeta>(apiClient.get("/api/analytics/open-tables", { params }));
-}
-
-export async function getOpenTableItems(tableId: string) {
-  return unwrap<OpenTableDetails, ReportMeta>(
-    apiClient.get(`/api/open-tables/${encodeURIComponent(tableId)}/items`)
+export async function getTypeOfPayment(params?: PeriodParams, connectionId?: string | null) {
+  return unwrap<PaymentBreakdownItem[], ReportMeta>(
+    apiClient.get("/api/analytics/type-of-payment", {
+      params: withConnectionId(params, connectionId),
+    })
   );
 }
 
-export async function getAllItems(params?: ListParams) {
-  return unwrap<AllItem[], PaginatedMeta>(apiClient.get("/api/lists/items", { params }));
+export async function getTimePeriods(
+  params?: { referenceDate?: string },
+  connectionId?: string | null
+) {
+  return unwrap<TimePeriodItem[], ReportMeta>(
+    apiClient.get("/api/analytics/time-periods", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
 }
 
-export async function getSpendGoods(params?: ListParams) {
-  return unwrap<SpendGoodItem[], PaginatedMeta>(apiClient.get("/api/lists/spend-goods", { params }));
+export async function getRevenueAnalysis(
+  params?: { year?: number },
+  connectionId?: string | null
+) {
+  return unwrap<RevenueAnalysisItem[], ReportMeta>(
+    apiClient.get("/api/analytics/revenue-analysis", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
 }
 
-export async function getStockGoods(params?: ListParams) {
-  return unwrap<StockGoodItem[], PaginatedMeta>(apiClient.get("/api/lists/stock-goods", { params }));
+export async function getTopSoldItems(
+  params?: PeriodParams & { limit?: number },
+  connectionId?: string | null
+) {
+  return unwrap<TopSoldItem[], ReportMeta>(
+    apiClient.get("/api/analytics/top-sold-items", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
 }
 
-export async function getBills(params?: ListParams) {
-  return unwrap<BillItem[], PaginatedMeta>(apiClient.get("/api/lists/bills", { params }));
+export async function getSalesItems(params?: PeriodParams, connectionId?: string | null) {
+  return unwrap<SalesItem[], ReportMeta>(
+    apiClient.get("/api/analytics/sales-items", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
 }
 
-export async function getBillItems(invoiceId: string) {
-  return unwrap<BillDetails, ReportMeta>(apiClient.get(`/api/bills/${encodeURIComponent(invoiceId)}/items`));
+export async function getRevenueByPayment(params?: PeriodParams, connectionId?: string | null) {
+  return unwrap<RevenueByPaymentItem[], ReportMeta>(
+    apiClient.get("/api/analytics/revenue-by-payment", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
 }
 
-export async function getCancelOrders(params?: ListParams) {
-  return unwrap<CancelOrderItem[], PaginatedMeta>(apiClient.get("/api/lists/cancel-orders", { params }));
+export async function getRevenueByTaxGroup(params?: PeriodParams, connectionId?: string | null) {
+  return unwrap<RevenueTaxGroupItem[], ReportMeta>(
+    apiClient.get("/api/analytics/revenue-by-tax-group", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
 }
 
-export async function getCancelOrderItems(invoiceId: string) {
+export async function getRevenuePerWaiter(params?: PeriodParams, connectionId?: string | null) {
+  return unwrap<RevenueWaiterItem[], ReportMeta>(
+    apiClient.get("/api/analytics/revenue-waiter", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
+}
+
+export async function getOpenTables(params?: PeriodParams, connectionId?: string | null) {
+  return unwrap<OpenTableItem[], ReportMeta>(
+    apiClient.get("/api/analytics/open-tables", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
+}
+
+export async function getOpenTableItems(tableId: string, connectionId?: string | null) {
+  return unwrap<OpenTableDetails, ReportMeta>(
+    apiClient.get(`/api/open-tables/${encodeURIComponent(tableId)}/items`, {
+      params: withConnectionId(undefined, connectionId),
+    })
+  );
+}
+
+export async function getAllItems(params?: ListParams, connectionId?: string | null) {
+  return unwrap<AllItem[], PaginatedMeta>(
+    apiClient.get("/api/lists/items", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
+}
+
+export async function getSpendGoods(params?: ListParams, connectionId?: string | null) {
+  return unwrap<SpendGoodItem[], PaginatedMeta>(
+    apiClient.get("/api/lists/spend-goods", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
+}
+
+export async function getStockGoods(params?: ListParams, connectionId?: string | null) {
+  return unwrap<StockGoodItem[], PaginatedMeta>(
+    apiClient.get("/api/lists/stock-goods", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
+}
+
+export async function getBills(params?: ListParams, connectionId?: string | null) {
+  return unwrap<BillItem[], PaginatedMeta>(
+    apiClient.get("/api/lists/bills", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
+}
+
+export async function getBillItems(invoiceId: string, connectionId?: string | null) {
+  return unwrap<BillDetails, ReportMeta>(
+    apiClient.get(`/api/bills/${encodeURIComponent(invoiceId)}/items`, {
+      params: withConnectionId(undefined, connectionId),
+    })
+  );
+}
+
+export async function getCancelOrders(params?: ListParams, connectionId?: string | null) {
+  return unwrap<CancelOrderItem[], PaginatedMeta>(
+    apiClient.get("/api/lists/cancel-orders", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
+}
+
+export async function getCancelOrderItems(invoiceId: string, connectionId?: string | null) {
   return unwrap<CancelOrderDetails, ReportMeta>(
-    apiClient.get(`/api/cancel-orders/${encodeURIComponent(invoiceId)}/items`)
+    apiClient.get(`/api/cancel-orders/${encodeURIComponent(invoiceId)}/items`, {
+      params: withConnectionId(undefined, connectionId),
+    })
   );
 }
 
