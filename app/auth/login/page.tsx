@@ -89,12 +89,7 @@ export default function LoginPage() {
         </div>
       </div>
 
-      <div className="text-center text-sm text-[#7b6a48]">
-        Forgot your password?{" "}
-        <Link className="font-semibold text-[#c98c1f]" href="/auth/forgot-password">
-          Reset here
-        </Link>
-      </div>
+      
 
       <Button
         type="submit"

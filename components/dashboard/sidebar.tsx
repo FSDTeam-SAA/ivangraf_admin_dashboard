@@ -146,14 +146,14 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
             <div
               key={item.href}
               className={cn(
-                "flex items-center justify-between rounded-lg px-3 py-2.5 text-sm font-medium text-[#2f2a21] transition",
+                "flex items-stretch justify-between rounded-lg text-sm font-medium text-[#2f2a21] transition",
                 isActive ? "bg-[#c99636] text-white shadow" : "hover:bg-[#f0d28c]"
               )}
             >
               <Link
                 href={item.href}
                 onClick={() => onNavigate?.()}
-                className="flex min-w-0 flex-1 items-center gap-3"
+                className="flex min-w-0 flex-1 items-center gap-3 px-3 py-2.5"
               >
                 <Icon className={cn("h-4 w-4", isActive ? "text-white" : "text-[#2f2a21]")} />
                 {item.name}
