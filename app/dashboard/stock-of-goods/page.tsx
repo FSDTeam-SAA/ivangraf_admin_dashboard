@@ -5,7 +5,6 @@ import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
-import { DateFilter } from "@/components/dashboard/date-filter";
 import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
@@ -16,7 +15,6 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getStockGoods, type StockGoodItem } from "@/lib/api";
-import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { formatSummaryValue } from "@/lib/summary";
@@ -26,7 +24,6 @@ const ITEMS_PER_PAGE = 12;
 export default function StockOfGoodsPage() {
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState("");
-  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<StockGoodItem | null>(null);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
@@ -37,14 +34,13 @@ export default function StockOfGoodsPage() {
       page,
       limit: ITEMS_PER_PAGE,
       search: deferredSearch || undefined,
-      ...buildDateFilterParams(dateFilter),
     }),
-    [page, deferredSearch, dateFilter]
+    [page, deferredSearch]
   );
 
   React.useEffect(() => {
     setPage(1);
-  }, [deferredSearch, dateFilter]);
+  }, [deferredSearch]);
 
   const stockGoodsQuery = useQuery({
     queryKey: ["lists", "stock-goods", activeConnectionId, queryParams],
@@ -75,7 +71,6 @@ export default function StockOfGoodsPage() {
         description="Monitor inventory levels and replenishment needs."
         actions={
           <>
-            <DateFilter value={dateFilter} onChange={setDateFilter} />
             <Button variant="soft" onClick={() => setExportOpen(true)}>
               <Download className="h-4 w-4" />
               Export
@@ -145,7 +140,6 @@ export default function StockOfGoodsPage() {
         params={{
           connectionId: activeConnectionId || undefined,
           search: deferredSearch || undefined,
-          ...buildDateFilterParams(dateFilter),
         }}
       />
 

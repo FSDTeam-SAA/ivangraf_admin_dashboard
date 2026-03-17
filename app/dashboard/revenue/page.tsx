@@ -26,7 +26,7 @@ const ITEMS_PER_PAGE = 12;
 
 export default function RevenuePage() {
   const [search, setSearch] = React.useState("");
-  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("today"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<RevenueByPaymentItem | null>(null);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();

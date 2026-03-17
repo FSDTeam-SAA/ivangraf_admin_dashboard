@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ArrowDownRight, ArrowUpRight, Download } from "lucide-react";
+import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 import { DateFilter } from "@/components/dashboard/date-filter";
@@ -15,7 +15,6 @@ import { useConnectionSelection } from "@/components/dashboard/use-connection-se
 import { usePagination } from "@/components/dashboard/use-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getSalesItems, type SalesItem } from "@/lib/api";
 import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
@@ -26,7 +25,7 @@ const ITEMS_PER_PAGE = 12;
 
 export default function SalesOfItemsPage() {
   const [search, setSearch] = React.useState("");
-  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("today"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<SalesItem | null>(null);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
@@ -49,11 +48,15 @@ export default function SalesOfItemsPage() {
     if (!search.trim()) return rows;
 
     const term = search.toLowerCase();
-    return rows.filter((item) => item.itemName.toLowerCase().includes(term));
+    return rows.filter(
+      (item) =>
+        item.itemName.toLowerCase().includes(term) ||
+        String(item.categoryName || "").toLowerCase().includes(term)
+    );
   }, [salesQuery.data?.data, search]);
 
   const totalAmount = React.useMemo(
-    () => filteredRows.reduce((sum, item) => sum + item.total, 0),
+    () => filteredRows.reduce((sum, item) => sum + item.totalSales, 0),
     [filteredRows]
   );
 
@@ -81,42 +84,27 @@ export default function SalesOfItemsPage() {
 
       <Card className="p-4">
         {salesQuery.isLoading || !isConnectionReady ? (
-          <TableSkeleton headers={["Name of Items", "Quantity", "Total", "% of all Items"]} rows={ITEMS_PER_PAGE} />
+          <TableSkeleton headers={["Name of Items", "Category", "Quantity Sold", "Total Sales", "Average Price"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name of Items</TableHead>
-                <TableHead>Quantity</TableHead>
-                <TableHead>Total</TableHead>
-                <TableHead>% of all Items</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead>Quantity Sold</TableHead>
+                <TableHead>Total Sales</TableHead>
+                <TableHead>Average Price</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {items.map((item) => {
-                const trend = item.percentOfAllItems >= 50;
-
                 return (
-                  <TableRow key={`${item.articleId}-${item.itemName}`} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
+                  <TableRow key={`${item.itemName}-${item.categoryName}`} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
                     <TableCell className="font-medium">{item.itemName}</TableCell>
-                    <TableCell>{item.quantity}</TableCell>
-                    <TableCell>
-                      <div className="text-sm font-semibold">{formatCurrency(item.total)}</div>
-                      <div className={trend ? "flex items-center gap-1 text-xs text-[#22c55e]" : "flex items-center gap-1 text-xs text-[#ef4444]"}>
-                        {trend ? <ArrowUpRight className="h-3 w-3" /> : <ArrowDownRight className="h-3 w-3" />}
-                        {trend ? "+" : ""}
-                        {item.percentOfAllItems}%
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Progress
-                          value={Math.min(item.percentOfAllItems, 100)}
-                          indicatorClassName={trend ? "bg-[#22c55e]" : "bg-[#ef4444]"}
-                        />
-                        <span className="text-xs text-[#4d4332]">{item.percentOfAllItems}%</span>
-                      </div>
-                    </TableCell>
+                    <TableCell>{item.categoryName || "-"}</TableCell>
+                    <TableCell>{item.quantitySold}</TableCell>
+                    <TableCell className="font-semibold">{formatCurrency(item.totalSales)}</TableCell>
+                    <TableCell>{formatCurrency(item.avgPrice)}</TableCell>
                   </TableRow>
                 );
               })}
@@ -160,11 +148,11 @@ export default function SalesOfItemsPage() {
         details={
           selectedItem
             ? [
-                { label: "Article ID", value: selectedItem.articleId || "-" },
                 { label: "Item", value: selectedItem.itemName },
-                { label: "Quantity", value: selectedItem.quantity },
-                { label: "Total", value: formatCurrency(selectedItem.total) },
-                { label: "Percent of all items", value: `${selectedItem.percentOfAllItems}%` },
+                { label: "Category", value: selectedItem.categoryName || "-" },
+                { label: "Quantity Sold", value: selectedItem.quantitySold },
+                { label: "Total Sales", value: formatCurrency(selectedItem.totalSales) },
+                { label: "Average Price", value: formatCurrency(selectedItem.avgPrice) },
               ]
             : []
         }

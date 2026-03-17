@@ -27,7 +27,7 @@ export function toDateInputValue(date: Date) {
   return `${year}-${month}-${day}`;
 }
 
-export function createDateFilterValue(preset: DateFilterPreset = "all", reference = new Date()): DateFilterValue {
+export function createDateFilterValue(preset: DateFilterPreset = "today", reference = new Date()): DateFilterValue {
   const today = toDateInputValue(reference);
   const yesterday = toDateInputValue(addDays(reference, -1));
   const last7DaysStart = toDateInputValue(addDays(reference, -6));

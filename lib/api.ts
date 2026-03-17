@@ -93,11 +93,11 @@ export interface TopSoldItem {
 }
 
 export interface SalesItem {
-  articleId: string | null;
   itemName: string;
-  quantity: number;
-  total: number;
-  percentOfAllItems: number;
+  categoryName: string;
+  quantitySold: number;
+  totalSales: number;
+  avgPrice: number;
 }
 
 export interface SpendGoodItem {
@@ -117,10 +117,14 @@ export interface AllItem {
   itemId?: string;
   itemName: string;
   name?: string;
+  categoryName?: string | null;
   price: number;
-  taxGroup: string | null;
-  taxValue: number | null;
-  displayTaxGroup: string;
+  taxGroup?: string | null;
+  taxValue?: number | null;
+  displayTaxGroup?: string;
+  code?: string | null;
+  shortName?: string | null;
+  barCode?: string | null;
   updatedAt?: string;
 }
 

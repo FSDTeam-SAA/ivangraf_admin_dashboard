@@ -25,7 +25,7 @@ const ITEMS_PER_PAGE = 12;
 
 export default function RevenuePerTaxGroupPage() {
   const [search, setSearch] = React.useState("");
-  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("today"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<RevenueTaxGroupItem | null>(null);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();

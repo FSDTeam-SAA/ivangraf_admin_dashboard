@@ -72,12 +72,13 @@ export default function AllItemsPage() {
 
       <Card className="p-4">
         {itemsQuery.isLoading || !isConnectionReady ? (
-          <TableSkeleton headers={["Name of Items", "Tax Group", "Price"]} rows={ITEMS_PER_PAGE} />
+          <TableSkeleton headers={["Name of Items", "Category", "Tax Group", "Price"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name of Items</TableHead>
+                <TableHead>Category</TableHead>
                 <TableHead>Tax Group</TableHead>
                 <TableHead className="text-right">Price</TableHead>
               </TableRow>
@@ -86,6 +87,7 @@ export default function AllItemsPage() {
               {rows.map((item) => (
                 <TableRow key={item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
                   <TableCell className="font-medium">{item.itemName || item.name}</TableCell>
+                  <TableCell>{item.categoryName || "-"}</TableCell>
                   <TableCell>{item.displayTaxGroup || "-"}</TableCell>
                   <TableCell className="text-right">{formatCurrency(item.price)}</TableCell>
                 </TableRow>
@@ -127,6 +129,7 @@ export default function AllItemsPage() {
           selectedItem
             ? [
                 { label: "Name", value: selectedItem.itemName || selectedItem.name },
+                { label: "Category", value: selectedItem.categoryName || "-" },
                 { label: "Tax Group", value: selectedItem.displayTaxGroup || "-" },
                 { label: "Price", value: formatCurrency(selectedItem.price) },
                 { label: "Updated", value: formatDate(selectedItem.updatedAt) },

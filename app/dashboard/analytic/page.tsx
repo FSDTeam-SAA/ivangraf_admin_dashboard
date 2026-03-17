@@ -83,7 +83,7 @@ const TOP_SOLD_CHART_COLORS = [
 ];
 
 export default function AnalyticPage() {
-  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("all"));
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("today"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState<RevenueAnalysisItem | null>(null);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
