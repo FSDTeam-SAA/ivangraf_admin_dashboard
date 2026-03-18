@@ -48,11 +48,7 @@ export default function SalesOfItemsPage() {
     if (!search.trim()) return rows;
 
     const term = search.toLowerCase();
-    return rows.filter(
-      (item) =>
-        item.itemName.toLowerCase().includes(term) ||
-        String(item.categoryName || "").toLowerCase().includes(term)
-    );
+    return rows.filter((item) => item.itemName.toLowerCase().includes(term));
   }, [salesQuery.data?.data, search]);
 
   const totalAmount = React.useMemo(
@@ -84,24 +80,22 @@ export default function SalesOfItemsPage() {
 
       <Card className="p-4">
         {salesQuery.isLoading || !isConnectionReady ? (
-          <TableSkeleton headers={["Name of Items", "Category", "Quantity Sold", "Total Sales", "Average Price"]} rows={ITEMS_PER_PAGE} />
+          <TableSkeleton headers={["Name of Items", "Quantity Sold", "Total Sales", "Average Price"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Name of Items</TableHead>
-                <TableHead>Category</TableHead>
                 <TableHead>Quantity Sold</TableHead>
                 <TableHead>Total Sales</TableHead>
                 <TableHead>Average Price</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {items.map((item) => {
+              {items.map((item, index) => {
                 return (
-                  <TableRow key={`${item.itemName}-${item.categoryName}`} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
+                  <TableRow key={`${item.itemName}-${index}`} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
                     <TableCell className="font-medium">{item.itemName}</TableCell>
-                    <TableCell>{item.categoryName || "-"}</TableCell>
                     <TableCell>{item.quantitySold}</TableCell>
                     <TableCell className="font-semibold">{formatCurrency(item.totalSales)}</TableCell>
                     <TableCell>{formatCurrency(item.avgPrice)}</TableCell>
@@ -149,7 +143,6 @@ export default function SalesOfItemsPage() {
           selectedItem
             ? [
                 { label: "Item", value: selectedItem.itemName },
-                { label: "Category", value: selectedItem.categoryName || "-" },
                 { label: "Quantity Sold", value: selectedItem.quantitySold },
                 { label: "Total Sales", value: formatCurrency(selectedItem.totalSales) },
                 { label: "Average Price", value: formatCurrency(selectedItem.avgPrice) },

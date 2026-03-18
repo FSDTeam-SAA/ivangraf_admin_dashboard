@@ -5,6 +5,7 @@ import { useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
+import { DateFilter } from "@/components/dashboard/date-filter";
 import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { ItemsDetailsDialog } from "@/components/dashboard/items-details-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
@@ -15,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getBillItems, getBills, type BillItem } from "@/lib/api";
+import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
 import { formatCurrency, formatDate } from "@/lib/format";
 import { formatSummaryValue } from "@/lib/summary";
@@ -24,24 +26,27 @@ const ITEMS_PER_PAGE = 12;
 export default function BillsPage() {
   const [page, setPage] = React.useState(1);
   const [search, setSearch] = React.useState("");
+  const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("today"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [detailExportOpen, setDetailExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<BillItem | null>(null);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
   const deferredSearch = React.useDeferredValue(search);
+  const dateParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
 
   const queryParams = React.useMemo(
     () => ({
       page,
       limit: ITEMS_PER_PAGE,
       search: deferredSearch || undefined,
+      ...dateParams,
     }),
-    [page, deferredSearch]
+    [page, deferredSearch, dateParams]
   );
 
   React.useEffect(() => {
     setPage(1);
-  }, [deferredSearch]);
+  }, [deferredSearch, dateFilter]);
 
   const billsQuery = useQuery({
     queryKey: ["lists", "bills", activeConnectionId, queryParams],
@@ -89,10 +94,13 @@ export default function BillsPage() {
         title="Bills"
         description="Track and reconcile generated bills."
         actions={
-          <Button variant="soft" onClick={() => setExportOpen(true)}>
-            <Download className="h-4 w-4" />
-            Export
-          </Button>
+          <>
+            <DateFilter value={dateFilter} onChange={setDateFilter} />
+            <Button variant="soft" onClick={() => setExportOpen(true)}>
+              <Download className="h-4 w-4" />
+              Export
+            </Button>
+          </>
         }
       />
 
@@ -146,6 +154,7 @@ export default function BillsPage() {
         params={{
           connectionId: activeConnectionId || undefined,
           search: deferredSearch || undefined,
+          ...dateParams,
         }}
       />
 
