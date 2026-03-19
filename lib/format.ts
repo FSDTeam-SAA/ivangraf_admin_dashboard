@@ -1,8 +1,9 @@
 export function formatCurrency(value: number) {
-  return new Intl.NumberFormat("en-US", {
+  const formatted = new Intl.NumberFormat("en-US", {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value || 0);
+  return `\u20AC${formatted}`;
 }
 
 export function formatNumber(value: number, maximumFractionDigits = 2) {
