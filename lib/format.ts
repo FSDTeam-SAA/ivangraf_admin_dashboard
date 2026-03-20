@@ -3,7 +3,7 @@ export function formatCurrency(value: number) {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   }).format(value || 0);
-  return `\u20AC${formatted}`;
+  return `${formatted}\u20AC`;
 }
 
 export function formatNumber(value: number, maximumFractionDigits = 2) {
