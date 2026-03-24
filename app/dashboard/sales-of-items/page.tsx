@@ -19,7 +19,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getSalesItems, type SalesItem } from "@/lib/api";
 import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatQuantity } from "@/lib/format";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -96,7 +96,7 @@ export default function SalesOfItemsPage() {
                 return (
                   <TableRow key={`${item.itemName}-${index}`} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
                     <TableCell className="font-medium">{item.itemName}</TableCell>
-                    <TableCell>{item.quantitySold}</TableCell>
+                    <TableCell>{formatQuantity(item.quantitySold)}</TableCell>
                     <TableCell className="font-semibold">{formatCurrency(item.totalSales)}</TableCell>
                     <TableCell>{formatCurrency(item.avgPrice)}</TableCell>
                   </TableRow>
@@ -143,7 +143,7 @@ export default function SalesOfItemsPage() {
           selectedItem
             ? [
                 { label: "Item", value: selectedItem.itemName },
-                { label: "Quantity Sold", value: selectedItem.quantitySold },
+                { label: "Quantity Sold", value: formatQuantity(selectedItem.quantitySold) },
                 { label: "Total Sales", value: formatCurrency(selectedItem.totalSales) },
                 { label: "Average Price", value: formatCurrency(selectedItem.avgPrice) },
               ]

@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getCancelOrderItems, getCancelOrders, type CancelOrderItem } from "@/lib/api";
 import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatQuantity } from "@/lib/format";
 import { formatSummaryValue } from "@/lib/summary";
 
 const ITEMS_PER_PAGE = 12;
@@ -180,7 +180,7 @@ export default function CancelOrdersPage() {
         }
         items={(detailData?.items || []).map((item) => ({
           name: item.name,
-          quantity: item.quantity,
+          quantity: formatQuantity(item.quantity),
           price: formatCurrency(item.price),
           total: formatCurrency(item.total),
         }))}

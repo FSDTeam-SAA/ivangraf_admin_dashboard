@@ -16,7 +16,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getStockGoods, type StockGoodItem } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatQuantity } from "@/lib/format";
 import { formatSummaryValue } from "@/lib/summary";
 
 const ITEMS_PER_PAGE = 12;
@@ -107,7 +107,11 @@ export default function StockOfGoodsPage() {
                 return (
                   <TableRow key={item.goodId || item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
                     <TableCell className="font-medium">{item.itemName || item.name}</TableCell>
-                    <TableCell>{item.quantity ?? item.inStock ?? "-"}</TableCell>
+                    <TableCell>
+                      {item.quantity != null || item.inStock != null
+                        ? formatQuantity(item.quantity ?? item.inStock ?? 0)
+                        : "-"}
+                    </TableCell>
                     <TableCell>{item.unitType || item.unit || "-"}</TableCell>
                     <TableCell className={statusClass}>{status}</TableCell>
                   </TableRow>
@@ -154,7 +158,13 @@ export default function StockOfGoodsPage() {
           selectedItem
             ? [
                 { label: "Name", value: selectedItem.itemName || selectedItem.name },
-                { label: "In Stock", value: selectedItem.quantity ?? selectedItem.inStock ?? "-" },
+                {
+                  label: "In Stock",
+                  value:
+                    selectedItem.quantity != null || selectedItem.inStock != null
+                      ? formatQuantity(selectedItem.quantity ?? selectedItem.inStock ?? 0)
+                      : "-",
+                },
                 { label: "Unit", value: selectedItem.unitType || selectedItem.unit || "-" },
                 { label: "Latest Price", value: formatCurrency(selectedItem.latestPrice || 0) },
                 {

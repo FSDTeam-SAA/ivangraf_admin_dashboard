@@ -18,7 +18,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { getSpendGoods, type SpendGoodItem } from "@/lib/api";
 import { buildDateFilterParams, createDateFilterValue } from "@/lib/date-filter";
 import { getErrorMessage } from "@/lib/error";
-import { formatCurrency, formatDate } from "@/lib/format";
+import { formatCurrency, formatDate, formatQuantity } from "@/lib/format";
 import { formatSummaryValue } from "@/lib/summary";
 
 const ITEMS_PER_PAGE = 12;
@@ -100,7 +100,7 @@ export default function ListOfSpendGoodsPage() {
               {rows.map((item) => (
                 <TableRow key={item.goodId || item.id} className="cursor-pointer" onClick={() => setSelectedItem(item)}>
                   <TableCell className="font-medium">{item.itemName || item.name}</TableCell>
-                  <TableCell>{item.quantity ?? "-"}</TableCell>
+                  <TableCell>{item.quantity != null ? formatQuantity(item.quantity) : "-"}</TableCell>
                   <TableCell>{item.unitType || item.unit || "-"}</TableCell>
                 </TableRow>
               ))}
@@ -146,7 +146,7 @@ export default function ListOfSpendGoodsPage() {
           selectedItem
             ? [
                 { label: "Name", value: selectedItem.itemName || selectedItem.name },
-                { label: "Quantity", value: selectedItem.quantity ?? "-" },
+                { label: "Quantity", value: selectedItem.quantity != null ? formatQuantity(selectedItem.quantity) : "-" },
                 { label: "Unit", value: selectedItem.unitType || selectedItem.unit || "-" },
                 { label: "Latest Price", value: formatCurrency(selectedItem.latestPrice || 0) },
                 { label: "Updated", value: formatDate(selectedItem.updatedAt) },

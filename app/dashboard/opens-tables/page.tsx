@@ -17,7 +17,7 @@ import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { getOpenTableItems, getOpenTables, type OpenTableItem } from "@/lib/api";
 import { getErrorMessage } from "@/lib/error";
-import { formatCurrency, formatDate, formatNumber } from "@/lib/format";
+import { formatCurrency, formatDate, formatNumber, formatQuantity } from "@/lib/format";
 
 const ITEMS_PER_PAGE = 12;
 
@@ -152,7 +152,7 @@ export default function OpensTablesPage() {
         }
         items={(detailData?.items || []).map((item) => ({
           name: item.name,
-          quantity: item.qty,
+          quantity: formatQuantity(item.qty),
           price: formatCurrency(item.price),
           total: formatCurrency(item.total),
         }))}
