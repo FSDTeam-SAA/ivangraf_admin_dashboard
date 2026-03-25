@@ -12,6 +12,7 @@ import { PageHeader } from "@/components/dashboard/page-header";
 import { TableFooter } from "@/components/dashboard/table-footer";
 import { TableSkeleton } from "@/components/dashboard/table-skeleton";
 import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
+import { useServerPagination } from "@/components/dashboard/use-server-pagination";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -71,16 +72,19 @@ export default function CancelOrdersPage() {
   }, [cancelOrderItemsQuery.error]);
 
   const rows = cancelOrdersQuery.data?.data || [];
-  const totalItems = cancelOrdersQuery.data?.meta?.total || 0;
-  const totalPages = Math.max(1, Math.ceil(totalItems / ITEMS_PER_PAGE));
+  const { hasLiveTotal, totalItems, totalPages } = useServerPagination(
+    cancelOrdersQuery.data?.meta?.total,
+    ITEMS_PER_PAGE
+  );
   const summary = cancelOrdersQuery.data?.meta?.summary;
   const detailData = cancelOrderItemsQuery.data?.data;
 
   React.useEffect(() => {
+    if (!hasLiveTotal) return;
     if (page > totalPages) {
       setPage(totalPages);
     }
-  }, [page, totalPages]);
+  }, [hasLiveTotal, page, totalPages]);
 
   React.useEffect(() => {
     setSelectedItem(null);

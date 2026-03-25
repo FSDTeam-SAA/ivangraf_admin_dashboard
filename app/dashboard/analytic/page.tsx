@@ -2,17 +2,14 @@
 
 import * as React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { Download } from "lucide-react";
 import { toast } from "sonner";
 
 import { DateFilter } from "@/components/dashboard/date-filter";
-import { ExportDialog } from "@/components/dashboard/export-dialog";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PaginationBar } from "@/components/dashboard/pagination-bar";
 import { RowDetailsDialog } from "@/components/dashboard/row-details-dialog";
 import { useConnectionSelection } from "@/components/dashboard/use-connection-selection";
 import { usePagination } from "@/components/dashboard/use-pagination";
-import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -84,7 +81,6 @@ const TOP_SOLD_CHART_COLORS = [
 
 export default function AnalyticPage() {
   const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("today"));
-  const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedRow, setSelectedRow] = React.useState<RevenueAnalysisItem | null>(null);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
 
@@ -161,13 +157,7 @@ export default function AnalyticPage() {
         title="Analytic"
         description="Explore organized analytics data. View data in clear lists. Get useful insights"
         actions={
-          <>
-            <DateFilter value={dateFilter} onChange={setDateFilter} />
-            <Button variant="soft" onClick={() => setExportOpen(true)}>
-              <Download className="h-4 w-4" />
-              Export
-            </Button>
-          </>
+          <DateFilter value={dateFilter} onChange={setDateFilter} />
         }
       />
 
@@ -354,20 +344,6 @@ export default function AnalyticPage() {
           </CardContent>
         </Card>
       </div>
-
-      <ExportDialog
-        open={exportOpen}
-        onOpenChange={setExportOpen}
-        title="Export"
-        subtitle="Analytic dashboard"
-        reportPath="/api/analytics/analytic-dashboard/export"
-        params={{
-          connectionId: activeConnectionId || undefined,
-          ...queryParams,
-          limit: 10,
-          year: referenceYear,
-        }}
-      />
 
       <RowDetailsDialog
         open={Boolean(selectedRow)}
