@@ -100,11 +100,11 @@ export default function StockOfGoodsPage() {
               {rows.map((item) => {
                 const quantity = item.quantity ?? item.inStock ?? 0;
                 const status =
-                  item.status || (quantity > 0 ? "Healthy" : quantity === 0 ? "Out of stock" : "Negative stock");
+                  item.status || (quantity > 0 ? "Zdrav" : quantity === 0 ? "Nema na skladištu" : "Negativna dionica");
                 const statusClass =
-                  status === "Healthy"
+                  status === "Zdrav"
                     ? "text-[#22c55e]"
-                    : status === "Out of stock"
+                    : status === "Nema na skladištu"
                       ? "text-[#9b6b26]"
                       : "text-[#ef4444]";
 
@@ -176,10 +176,10 @@ export default function StockOfGoodsPage() {
                   value:
                     selectedItem.status ||
                     ((selectedItem.quantity ?? selectedItem.inStock ?? 0) > 0
-                      ? "Healthy"
+                      ? "Zdrav"
                       : (selectedItem.quantity ?? selectedItem.inStock ?? 0) === 0
-                        ? "Out of stock"
-                        : "Negative stock"),
+                        ? "Nema na skladištu"
+                        : "Negativna dionica"),
                 },
                 { label: "Updated", value: formatDate(selectedItem.updatedAt) },
               ]

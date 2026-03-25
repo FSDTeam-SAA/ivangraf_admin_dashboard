@@ -125,7 +125,7 @@ export const stockGoods = Array.from({ length: 20 }).map((_, index) => ({
   item: "Arabica Beans",
   inStock: 120 - index * 2,
   reorder: 40,
-  status: index % 3 === 0 ? "Low" : "Healthy",
+  status: index % 3 === 0 ? "Low" : "Zdrav",
 }));
 
 export const bills = Array.from({ length: 20 }).map((_, index) => ({
