@@ -165,6 +165,7 @@ export interface OpenTableItemDetailsRow {
 }
 
 export interface OpenTableDetails {
+  invoiceId?: string;
   tableId: string;
   tableName: string;
   waiter: string | null;
