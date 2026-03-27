@@ -1,9 +1,10 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { toast } from "sonner";
 
+import { BackgroundFetchIndicator } from "@/components/dashboard/background-fetch-indicator";
 import { DateFilter } from "@/components/dashboard/date-filter";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { PaginationBar } from "@/components/dashboard/pagination-bar";
@@ -92,6 +93,7 @@ export default function AnalyticPage() {
     queryKey: ["dashboard", "type-of-payment", activeConnectionId, queryParams],
     queryFn: () => getTypeOfPayment(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   const revenueAnalysisQuery = useQuery({
@@ -99,12 +101,14 @@ export default function AnalyticPage() {
     queryFn: () =>
       getRevenueAnalysis(referenceYear ? { year: referenceYear } : undefined, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   const topSoldQuery = useQuery({
     queryKey: ["dashboard", "top-sold-items", activeConnectionId, queryParams],
     queryFn: () => getTopSoldItems({ ...queryParams, limit: 10 }, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   React.useEffect(() => {
@@ -133,6 +137,10 @@ export default function AnalyticPage() {
     }))
   );
   const topSoldGrand = topSoldRows.reduce((sum, row) => sum + row.totalAmount, 0);
+  const isRefreshingAnalytics =
+    (paymentQuery.isFetching && Boolean(paymentQuery.data)) ||
+    (revenueAnalysisQuery.isFetching && Boolean(revenueAnalysisQuery.data)) ||
+    (topSoldQuery.isFetching && Boolean(topSoldQuery.data));
 
   const maxRevenue = Math.max(
     1,
@@ -157,12 +165,17 @@ export default function AnalyticPage() {
         title="Analytic"
         description="Explore organized analytics data. View data in clear lists. Get useful insights"
         actions={
-          <DateFilter value={dateFilter} onChange={setDateFilter} />
+          <>
+            {isRefreshingAnalytics ? (
+              <BackgroundFetchIndicator label="Refreshing analytics..." />
+            ) : null}
+            <DateFilter value={dateFilter} onChange={setDateFilter} />
+          </>
         }
       />
 
       <div className="grid gap-6 lg:grid-cols-2">
-        {!isConnectionReady || paymentQuery.isLoading ? (
+        {!isConnectionReady || (paymentQuery.isLoading && !paymentQuery.data) ? (
           <AnalyticCardSkeleton />
         ) : (
           <Card>
@@ -199,7 +212,7 @@ export default function AnalyticPage() {
           </Card>
         )}
 
-        {!isConnectionReady || topSoldQuery.isLoading ? (
+        {!isConnectionReady || (topSoldQuery.isLoading && !topSoldQuery.data) ? (
           <AnalyticCardSkeleton />
         ) : (
           <Card>
@@ -247,7 +260,7 @@ export default function AnalyticPage() {
             <p className="text-sm text-[#7b6a48]">Bottom-origin monthly bar chart for year comparison.</p>
           </CardHeader>
           <CardContent>
-            {!isConnectionReady || revenueAnalysisQuery.isLoading ? (
+            {!isConnectionReady || (revenueAnalysisQuery.isLoading && !revenueAnalysisQuery.data) ? (
               <Skeleton className="h-[260px] w-full" />
             ) : (
               <>
@@ -293,7 +306,7 @@ export default function AnalyticPage() {
             </p>
           </CardHeader>
           <CardContent className="flex-1 overflow-y-auto pr-2">
-            {!isConnectionReady || revenueAnalysisQuery.isLoading ? (
+            {!isConnectionReady || (revenueAnalysisQuery.isLoading && !revenueAnalysisQuery.data) ? (
               <div className="space-y-3">
                 {Array.from({ length: 6 }).map((_, index) => (
                   <Skeleton key={index} className="h-10 w-full" />

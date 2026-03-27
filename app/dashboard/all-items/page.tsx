@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -26,6 +26,7 @@ export default function AllItemsPage() {
   const [page, setPage] = React.useState(1);
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<AllItem | null>(null);
+  const [resolvedPage, setResolvedPage] = React.useState(page);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
 
   const queryParams = React.useMemo(
@@ -40,6 +41,7 @@ export default function AllItemsPage() {
     queryKey: ["lists", "all-items", activeConnectionId, queryParams],
     queryFn: () => getAllItems(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   React.useEffect(() => {
@@ -53,6 +55,17 @@ export default function AllItemsPage() {
     ITEMS_PER_PAGE
   );
   const summary = itemsQuery.data?.meta?.summary;
+  const isRefreshingItems = itemsQuery.isFetching && Boolean(itemsQuery.data);
+  const showTableSkeleton =
+    !isConnectionReady ||
+    (itemsQuery.isLoading && !itemsQuery.data) ||
+    (itemsQuery.isPlaceholderData && page !== resolvedPage);
+
+  React.useEffect(() => {
+    if (itemsQuery.data && !itemsQuery.isPlaceholderData) {
+      setResolvedPage(page);
+    }
+  }, [itemsQuery.data, itemsQuery.isPlaceholderData, page]);
 
   React.useEffect(() => {
     if (!hasLiveTotal) return;
@@ -75,7 +88,7 @@ export default function AllItemsPage() {
       />
 
       <Card className="p-4">
-        {itemsQuery.isLoading || !isConnectionReady ? (
+        {showTableSkeleton ? (
           <TableSkeleton headers={["Name of Items", "Category", "Tax Group", "Price"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -103,6 +116,7 @@ export default function AllItemsPage() {
         <TableFooter
           showSearch={false}
           showTotal={false}
+          isRefreshing={isRefreshingItems}
           totalLabel={summary?.label || "Total"}
           totalValue={formatSummaryValue(summary, totalItems)}
           page={page}

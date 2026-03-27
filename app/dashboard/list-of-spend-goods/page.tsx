@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -30,6 +30,7 @@ export default function ListOfSpendGoodsPage() {
   const [dateFilter, setDateFilter] = React.useState(() => createDateFilterValue("today"));
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<SpendGoodItem | null>(null);
+  const [resolvedPage, setResolvedPage] = React.useState(page);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
   const deferredSearch = React.useDeferredValue(search);
 
@@ -51,6 +52,7 @@ export default function ListOfSpendGoodsPage() {
     queryKey: ["lists", "spend-goods", activeConnectionId, queryParams],
     queryFn: () => getSpendGoods(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   React.useEffect(() => {
@@ -64,6 +66,17 @@ export default function ListOfSpendGoodsPage() {
     ITEMS_PER_PAGE
   );
   const summary = spendGoodsQuery.data?.meta?.summary;
+  const isRefreshingSpendGoods = spendGoodsQuery.isFetching && Boolean(spendGoodsQuery.data);
+  const showTableSkeleton =
+    !isConnectionReady ||
+    (spendGoodsQuery.isLoading && !spendGoodsQuery.data) ||
+    (spendGoodsQuery.isPlaceholderData && page !== resolvedPage);
+
+  React.useEffect(() => {
+    if (spendGoodsQuery.data && !spendGoodsQuery.isPlaceholderData) {
+      setResolvedPage(page);
+    }
+  }, [page, spendGoodsQuery.data, spendGoodsQuery.isPlaceholderData]);
 
   React.useEffect(() => {
     if (!hasLiveTotal) return;
@@ -89,7 +102,7 @@ export default function ListOfSpendGoodsPage() {
       />
 
       <Card className="p-4">
-        {spendGoodsQuery.isLoading || !isConnectionReady ? (
+        {showTableSkeleton ? (
           <TableSkeleton headers={["Name of Items", "Quantity", "Type of Unit"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -116,6 +129,7 @@ export default function ListOfSpendGoodsPage() {
           search={search}
           onSearchChange={setSearch}
           showTotal={false}
+          isRefreshing={isRefreshingSpendGoods}
           totalLabel={summary?.label || "Total"}
           totalValue={formatSummaryValue(summary, totalItems)}
           page={page}

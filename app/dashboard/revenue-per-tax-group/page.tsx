@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -36,6 +36,7 @@ export default function RevenuePerTaxGroupPage() {
     queryKey: ["dashboard", "revenue-tax-group", activeConnectionId, queryParams],
     queryFn: () => getRevenueByTaxGroup(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   React.useEffect(() => {
@@ -55,6 +56,7 @@ export default function RevenuePerTaxGroupPage() {
     () => filteredRows.reduce((sum, item) => sum + item.taxAmount, 0),
     [filteredRows]
   );
+  const isRefreshingTaxGroup = taxGroupQuery.isFetching && Boolean(taxGroupQuery.data);
 
   const { page, setPage, totalPages, totalItems, items } = usePagination(filteredRows, ITEMS_PER_PAGE);
 
@@ -79,7 +81,7 @@ export default function RevenuePerTaxGroupPage() {
       />
 
       <Card className="p-4">
-        {taxGroupQuery.isLoading || !isConnectionReady ? (
+        {!isConnectionReady || (taxGroupQuery.isLoading && !taxGroupQuery.data) ? (
           <TableSkeleton headers={["Name of tax group", "Total total", "Total amount of tax"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -105,6 +107,7 @@ export default function RevenuePerTaxGroupPage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
+          isRefreshing={isRefreshingTaxGroup}
           totalLabel="Total amount of tax"
           totalValue={formatCurrency(totalTaxAmount)}
           page={page}

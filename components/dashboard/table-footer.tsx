@@ -2,6 +2,7 @@
 
 import { Search } from "lucide-react";
 
+import { BackgroundFetchIndicator } from "@/components/dashboard/background-fetch-indicator";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { PaginationBar } from "@/components/dashboard/pagination-bar";
@@ -11,6 +12,7 @@ interface TableFooterProps {
   onSearchChange?: (value: string) => void;
   showSearch?: boolean;
   showTotal?: boolean;
+  isRefreshing?: boolean;
   totalLabel: string;
   totalValue: string;
   page: number;
@@ -25,6 +27,7 @@ export function TableFooter({
   onSearchChange,
   showSearch = true,
   showTotal = true,
+  isRefreshing = false,
   totalLabel,
   totalValue,
   page,
@@ -51,10 +54,15 @@ export function TableFooter({
           </Button>
         </div>
       ) : null}
-      {showTotal ? (
-        <div className="text-sm">
-          <div className="font-semibold text-[#2f2a21]">{totalLabel}</div>
-          <div className="text-[#22c55e]">{totalValue}</div>
+      {showTotal || isRefreshing ? (
+        <div className="space-y-2 text-sm">
+          {showTotal ? (
+            <div>
+              <div className="font-semibold text-[#2f2a21]">{totalLabel}</div>
+              <div className="text-[#22c55e]">{totalValue}</div>
+            </div>
+          ) : null}
+          {isRefreshing ? <BackgroundFetchIndicator /> : null}
         </div>
       ) : null}
       <PaginationBar

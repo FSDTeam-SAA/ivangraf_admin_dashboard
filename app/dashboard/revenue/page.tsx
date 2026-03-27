@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ export default function RevenuePage() {
     queryKey: ["dashboard", "revenue-by-payment", activeConnectionId, queryParams],
     queryFn: () => getRevenueByPayment(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   React.useEffect(() => {
@@ -56,6 +57,7 @@ export default function RevenuePage() {
     () => filteredRows.reduce((sum, item) => sum + item.total, 0),
     [filteredRows]
   );
+  const isRefreshingRevenue = revenueQuery.isFetching && Boolean(revenueQuery.data);
 
   const { page, setPage, totalPages, totalItems, items } = usePagination(filteredRows, ITEMS_PER_PAGE);
 
@@ -80,7 +82,7 @@ export default function RevenuePage() {
       />
 
       <Card className="p-4">
-        {revenueQuery.isLoading || !isConnectionReady ? (
+        {!isConnectionReady || (revenueQuery.isLoading && !revenueQuery.data) ? (
           <TableSkeleton headers={["Type of Payment", "Total", "% of all Items"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -118,6 +120,7 @@ export default function RevenuePage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
+          isRefreshing={isRefreshingRevenue}
           totalLabel="Total amount"
           totalValue={formatCurrency(totalAmount)}
           page={page}

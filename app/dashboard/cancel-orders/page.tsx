@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +31,7 @@ export default function CancelOrdersPage() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [detailExportOpen, setDetailExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<CancelOrderItem | null>(null);
+  const [resolvedPage, setResolvedPage] = React.useState(page);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
   const deferredSearch = React.useDeferredValue(search);
 
@@ -52,6 +53,7 @@ export default function CancelOrdersPage() {
     queryKey: ["lists", "cancel-orders", activeConnectionId, queryParams],
     queryFn: () => getCancelOrders(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   const selectedInvoiceId = selectedItem?.id;
@@ -78,6 +80,18 @@ export default function CancelOrdersPage() {
   );
   const summary = cancelOrdersQuery.data?.meta?.summary;
   const detailData = cancelOrderItemsQuery.data?.data;
+  const isRefreshingCancelOrders =
+    cancelOrdersQuery.isFetching && Boolean(cancelOrdersQuery.data);
+  const showTableSkeleton =
+    !isConnectionReady ||
+    (cancelOrdersQuery.isLoading && !cancelOrdersQuery.data) ||
+    (cancelOrdersQuery.isPlaceholderData && page !== resolvedPage);
+
+  React.useEffect(() => {
+    if (cancelOrdersQuery.data && !cancelOrdersQuery.isPlaceholderData) {
+      setResolvedPage(page);
+    }
+  }, [cancelOrdersQuery.data, cancelOrdersQuery.isPlaceholderData, page]);
 
   React.useEffect(() => {
     if (!hasLiveTotal) return;
@@ -108,7 +122,7 @@ export default function CancelOrdersPage() {
       />
 
       <Card className="p-4">
-        {cancelOrdersQuery.isLoading || !isConnectionReady ? (
+        {showTableSkeleton ? (
           <TableSkeleton headers={["Order", "Time", "Waiter", "Amount"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -136,6 +150,7 @@ export default function CancelOrdersPage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
+          isRefreshing={isRefreshingCancelOrders}
           totalLabel={summary?.label || "Total"}
           totalValue={formatSummaryValue(summary, totalItems)}
           page={page}

@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -31,6 +31,7 @@ export default function BillsPage() {
   const [exportOpen, setExportOpen] = React.useState(false);
   const [detailExportOpen, setDetailExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<BillItem | null>(null);
+  const [resolvedPage, setResolvedPage] = React.useState(page);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
   const deferredSearch = React.useDeferredValue(search);
   const dateParams = React.useMemo(() => buildDateFilterParams(dateFilter), [dateFilter]);
@@ -53,6 +54,7 @@ export default function BillsPage() {
     queryKey: ["lists", "bills", activeConnectionId, queryParams],
     queryFn: () => getBills(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   const selectedInvoiceId = selectedItem?.id;
@@ -79,6 +81,17 @@ export default function BillsPage() {
   );
   const summary = billsQuery.data?.meta?.summary;
   const detailData = billItemsQuery.data?.data;
+  const isRefreshingBills = billsQuery.isFetching && Boolean(billsQuery.data);
+  const showTableSkeleton =
+    !isConnectionReady ||
+    (billsQuery.isLoading && !billsQuery.data) ||
+    (billsQuery.isPlaceholderData && page !== resolvedPage);
+
+  React.useEffect(() => {
+    if (billsQuery.data && !billsQuery.isPlaceholderData) {
+      setResolvedPage(page);
+    }
+  }, [billsQuery.data, billsQuery.isPlaceholderData, page]);
 
   React.useEffect(() => {
     if (!hasLiveTotal) return;
@@ -109,7 +122,7 @@ export default function BillsPage() {
       />
 
       <Card className="p-4">
-        {billsQuery.isLoading || !isConnectionReady ? (
+        {showTableSkeleton ? (
           <TableSkeleton headers={["Bill", "Time", "Waiter", "Payment", "Total"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -139,6 +152,7 @@ export default function BillsPage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
+          isRefreshing={isRefreshingBills}
           totalLabel={summary?.label || "Total"}
           totalValue={formatSummaryValue(summary, totalItems)}
           page={page}

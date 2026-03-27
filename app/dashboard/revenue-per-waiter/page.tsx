@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -37,6 +37,7 @@ export default function RevenuePerWaiterPage() {
     queryKey: ["dashboard", "revenue-waiter", activeConnectionId, queryParams],
     queryFn: () => getRevenuePerWaiter(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   React.useEffect(() => {
@@ -56,6 +57,7 @@ export default function RevenuePerWaiterPage() {
     () => filteredRows.reduce((sum, item) => sum + item.total, 0),
     [filteredRows]
   );
+  const isRefreshingWaiters = waiterQuery.isFetching && Boolean(waiterQuery.data);
 
   const { page, setPage, totalPages, totalItems, items } = usePagination(filteredRows, ITEMS_PER_PAGE);
 
@@ -80,7 +82,7 @@ export default function RevenuePerWaiterPage() {
       />
 
       <Card className="p-4">
-        {waiterQuery.isLoading || !isConnectionReady ? (
+        {!isConnectionReady || (waiterQuery.isLoading && !waiterQuery.data) ? (
           <TableSkeleton headers={["Name of Waiter", "Total", "% of all Waiters"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -118,6 +120,7 @@ export default function RevenuePerWaiterPage() {
         <TableFooter
           search={search}
           onSearchChange={setSearch}
+          isRefreshing={isRefreshingWaiters}
           totalLabel="Total amount"
           totalValue={formatCurrency(totalAmount)}
           page={page}

@@ -58,6 +58,7 @@ export default function OpensTablesPage() {
   const { page, setPage, totalPages, totalItems, items } = usePagination(rows, ITEMS_PER_PAGE);
 
   const detailData = openTableItemsQuery.data?.data;
+  const isRefreshingOpenTables = openTablesQuery.isFetching && Boolean(openTablesQuery.data);
 
   React.useEffect(() => {
     setSelectedItem(null);
@@ -78,7 +79,7 @@ export default function OpensTablesPage() {
       />
 
       <Card className="p-4">
-        {openTablesQuery.isLoading || !isConnectionReady ? (
+        {!isConnectionReady || (openTablesQuery.isLoading && !openTablesQuery.data) ? (
           <TableSkeleton headers={["Table", "Sector", "Waiter", "Status"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -107,6 +108,7 @@ export default function OpensTablesPage() {
 
         <TableFooter
           showSearch={false}
+          isRefreshing={isRefreshingOpenTables}
           totalLabel="Occupied tables"
           totalValue={formatNumber(occupiedCount, 0)}
           page={page}

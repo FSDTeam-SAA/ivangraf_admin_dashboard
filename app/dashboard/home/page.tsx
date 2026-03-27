@@ -5,6 +5,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { CheckCircle2, Database, RefreshCcw } from "lucide-react";
 import { toast } from "sonner";
 
+import { BackgroundFetchIndicator } from "@/components/dashboard/background-fetch-indicator";
 import { useDashboardActiveConnection } from "@/components/dashboard/active-connection-context";
 import { PageHeader } from "@/components/dashboard/page-header";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -55,6 +56,12 @@ export default function HomePage() {
     queryKey: ["connections"],
     queryFn: getMyConnections,
   });
+  const connections = React.useMemo(
+    () => connectionsQuery.data?.data || [],
+    [connectionsQuery.data?.data]
+  );
+  const isRefreshingConnections =
+    connectionsQuery.isFetching && Boolean(connectionsQuery.data);
 
   const syncMutation = useMutation({
     mutationFn: (connectionId: string) => runSyncNow(connectionId),
@@ -77,21 +84,20 @@ export default function HomePage() {
       return;
     }
 
-    const list = connectionsQuery.data?.data || [];
-    if (!list.length) {
+    if (!connections.length) {
       return;
     }
 
     const activeConnectionExists = activeConnectionId
-      ? list.some((connection) => connection.id === activeConnectionId)
+      ? connections.some((connection) => connection.id === activeConnectionId)
       : false;
 
     if (activeConnectionExists) {
       return;
     }
 
-    setActiveConnection(list[0].id);
-  }, [activeConnectionId, connectionsQuery.data?.data, isConnectionReady, setActiveConnection]);
+    setActiveConnection(connections[0].id);
+  }, [activeConnectionId, connections, isConnectionReady, setActiveConnection]);
 
   React.useEffect(() => {
     if (!connectionsQuery.error) return;
@@ -103,9 +109,14 @@ export default function HomePage() {
       <PageHeader
         title="Your Databases"
         description="Select a database, then use sidebar analytics and list reports."
+        actions={
+          isRefreshingConnections ? (
+            <BackgroundFetchIndicator label="Refreshing databases..." />
+          ) : undefined
+        }
       />
 
-      {connectionsQuery.isLoading ? (
+      {connectionsQuery.isLoading && !connections.length ? (
         <div className="grid gap-6 md:grid-cols-2">
           <DatabaseSkeleton />
           <DatabaseSkeleton />
@@ -113,7 +124,7 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      {!connectionsQuery.isLoading && !connectionsQuery.data?.data.length ? (
+      {!connectionsQuery.isLoading && !connections.length ? (
         <Card className="bg-[#fff6ea]">
           <CardContent className="space-y-3 p-8 text-center">
             <p className="text-xl font-semibold text-[#2f2a21]">No database found</p>
@@ -128,9 +139,9 @@ export default function HomePage() {
         </Card>
       ) : null}
 
-      {!connectionsQuery.isLoading ? (
+      {connections.length ? (
         <div className="grid gap-6 md:grid-cols-2">
-          {(connectionsQuery.data?.data || []).map((database, index) => {
+          {connections.map((database, index) => {
             const isActive = activeConnectionId === database.id;
             const isPendingSelection = pendingConnectionId === database.id;
             const isMerged = database.kind === "merged" || Boolean(database.isMerged);

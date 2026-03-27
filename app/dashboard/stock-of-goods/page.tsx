@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useQuery } from "@tanstack/react-query";
+import { keepPreviousData, useQuery } from "@tanstack/react-query";
 import { Download } from "lucide-react";
 import { toast } from "sonner";
 
@@ -27,6 +27,7 @@ export default function StockOfGoodsPage() {
   const [search, setSearch] = React.useState("");
   const [exportOpen, setExportOpen] = React.useState(false);
   const [selectedItem, setSelectedItem] = React.useState<StockGoodItem | null>(null);
+  const [resolvedPage, setResolvedPage] = React.useState(page);
   const { activeConnectionId, isConnectionReady } = useConnectionSelection();
   const deferredSearch = React.useDeferredValue(search);
 
@@ -47,6 +48,7 @@ export default function StockOfGoodsPage() {
     queryKey: ["lists", "stock-goods", activeConnectionId, queryParams],
     queryFn: () => getStockGoods(queryParams, activeConnectionId),
     enabled: isConnectionReady && Boolean(activeConnectionId),
+    placeholderData: keepPreviousData,
   });
 
   React.useEffect(() => {
@@ -60,6 +62,17 @@ export default function StockOfGoodsPage() {
     ITEMS_PER_PAGE
   );
   const summary = stockGoodsQuery.data?.meta?.summary;
+  const isRefreshingStock = stockGoodsQuery.isFetching && Boolean(stockGoodsQuery.data);
+  const showTableSkeleton =
+    !isConnectionReady ||
+    (stockGoodsQuery.isLoading && !stockGoodsQuery.data) ||
+    (stockGoodsQuery.isPlaceholderData && page !== resolvedPage);
+
+  React.useEffect(() => {
+    if (stockGoodsQuery.data && !stockGoodsQuery.isPlaceholderData) {
+      setResolvedPage(page);
+    }
+  }, [page, stockGoodsQuery.data, stockGoodsQuery.isPlaceholderData]);
 
   React.useEffect(() => {
     if (!hasLiveTotal) return;
@@ -84,7 +97,7 @@ export default function StockOfGoodsPage() {
       />
 
       <Card className="p-4">
-        {stockGoodsQuery.isLoading || !isConnectionReady ? (
+        {showTableSkeleton ? (
           <TableSkeleton headers={["Item", "In Stock", "Unit", "Status"]} rows={ITEMS_PER_PAGE} />
         ) : (
           <Table>
@@ -129,6 +142,7 @@ export default function StockOfGoodsPage() {
           search={search}
           onSearchChange={setSearch}
           showTotal={false}
+          isRefreshing={isRefreshingStock}
           totalLabel={summary?.label || "Total"}
           totalValue={formatSummaryValue(summary, totalItems)}
           page={page}
