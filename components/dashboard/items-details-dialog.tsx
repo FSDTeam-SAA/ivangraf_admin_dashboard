@@ -31,6 +31,7 @@ interface ItemsDetailsDialogProps {
   totalValue: React.ReactNode;
   loading?: boolean;
   errorMessage?: string | null;
+  emptyMessage?: React.ReactNode;
   onRetry?: () => void;
   onExport?: () => void;
 }
@@ -46,6 +47,7 @@ export function ItemsDetailsDialog({
   totalValue,
   loading = false,
   errorMessage = null,
+  emptyMessage = "No items found",
   onRetry,
   onExport,
 }: ItemsDetailsDialogProps) {
@@ -118,7 +120,7 @@ export function ItemsDetailsDialog({
                   ) : (
                     <TableRow>
                       <TableCell colSpan={4} className="py-10 text-center text-sm text-[#7d6f54]">
-                        No items found
+                        {emptyMessage}
                       </TableCell>
                     </TableRow>
                   )}

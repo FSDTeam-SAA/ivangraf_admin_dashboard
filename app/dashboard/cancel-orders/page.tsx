@@ -192,6 +192,7 @@ export default function CancelOrdersPage() {
         totalValue={formatCurrency(detailData?.cancelledTotal || 0)}
         loading={cancelOrderItemsQuery.isLoading}
         errorMessage={cancelOrderItemsQuery.error ? getErrorMessage(cancelOrderItemsQuery.error) : null}
+        emptyMessage={detailData?.itemsMessage || "No items found"}
         onRetry={() => {
           void cancelOrderItemsQuery.refetch();
         }}

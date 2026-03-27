@@ -197,6 +197,8 @@ export interface CancelOrderDetails {
   dateCreated: string | null;
   isCancelledInvoice?: boolean;
   isLoyaltyInvoice?: boolean;
+  sourceItemDataAvailable?: boolean;
+  itemsMessage?: string | null;
   items: InvoiceItemDetailsRow[];
   cancelledTotal: number;
 }
