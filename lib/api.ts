@@ -195,6 +195,8 @@ export interface CancelOrderDetails {
   tableName: string;
   waiter: string | null;
   dateCreated: string | null;
+  isCancelledInvoice?: boolean;
+  isLoyaltyInvoice?: boolean;
   items: InvoiceItemDetailsRow[];
   cancelledTotal: number;
 }
@@ -226,7 +228,10 @@ export interface CancelOrderItem {
   id: string;
   orderNumber: string;
   time: string;
+  tableName?: string;
   waiter: string | null;
+  isCancelledInvoice?: boolean;
+  isLoyaltyInvoice?: boolean;
   amount: number;
 }
 
