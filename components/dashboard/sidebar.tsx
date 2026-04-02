@@ -41,6 +41,7 @@ const navItems = [
   { name: "Revenue", href: "/dashboard/revenue", icon: Wallet },
   { name: "Revenue per tax group", href: "/dashboard/revenue-per-tax-group", icon: Percent },
   { name: "Revenue Per Waiter", href: "/dashboard/revenue-per-waiter", icon: Users },
+  { name: "Tips Per Waiter", href: "/dashboard/tips-per-waiter", icon: Wallet },
   { name: "Opens Tables", href: "/dashboard/opens-tables", icon: Table2 },
   { name: "Stock of Goods", href: "/dashboard/stock-of-goods", icon: Package },
   { name: "Bills", href: "/dashboard/bills", icon: Receipt },

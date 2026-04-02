@@ -148,6 +148,13 @@ export interface RevenueWaiterItem {
   percentOfAllWaiters: number;
 }
 
+export interface TipsPerWaiterItem {
+  waiterName: string;
+  cash: number;
+  card: number;
+  total: number;
+}
+
 export interface OpenTableItem {
   tableId: string;
   tableName: string;
@@ -411,6 +418,14 @@ export async function getRevenueByTaxGroup(params?: PeriodParams, connectionId?:
 export async function getRevenuePerWaiter(params?: PeriodParams, connectionId?: string | null) {
   return unwrap<RevenueWaiterItem[], ReportMeta>(
     apiClient.get("/api/analytics/revenue-waiter", {
+      params: withConnectionId(params, connectionId),
+    })
+  );
+}
+
+export async function getTipsPerWaiter(params?: PeriodParams, connectionId?: string | null) {
+  return unwrap<TipsPerWaiterItem[], ReportMeta>(
+    apiClient.get("/api/analytics/tips-per-waiter", {
       params: withConnectionId(params, connectionId),
     })
   );
